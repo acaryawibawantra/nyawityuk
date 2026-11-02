@@ -23,12 +23,15 @@
     padding:calc(8px + env(safe-area-inset-top)) 10px 0;
     display:flex;gap:6px;align-items:flex-start;justify-content:space-between}
   .chips{display:flex;gap:6px;flex-wrap:wrap}
-  .chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
-    border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700;backdrop-filter:blur(10px);
-    box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .chip{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:6px 10px;font-size:clamp(10.5px,3.05vw,13px);font-weight:700;
+    backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(0,0,0,.18)}
   .chip .v{color:var(--gold);font-variant-numeric:tabular-nums}
   .chip.t .v{color:#b9f0c4}
   .chip.p .v{color:#9fe6ff}
+  .chip.c .v{color:#ffe0a3}
+  .chip.bump{animation:bump .28s ease}
+  @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
 
   .demo-card{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translateX(-50%);
     z-index:8;display:none;width:min(92vw,380px);background:rgba(46,20,12,.94);border:1px solid #f0885f;
@@ -93,6 +96,7 @@
       <div class="chip">Rp <span class="v" id="ui-money">0</span></div>
       <div class="chip t">Tebang <span class="v" id="ui-chopped">0</span></div>
       <div class="chip p">Sawit <span class="v" id="ui-palms">0</span></div>
+      <div class="chip c">Sapi <span class="v" id="ui-cows">0</span></div>
       <div class="chip" id="ui-tool">Kapak</div>
     </div>
     <div style="pointer-events:auto"><button class="pill" id="btn-mute" style="padding:9px 12px">🔊</button></div>
@@ -120,6 +124,7 @@
       <div class="tabs">
         <button class="tab active" data-tab="alat">Alat</button>
         <button class="tab" data-tab="bibit">Bibit</button>
+        <button class="tab" data-tab="ternak">Ternak</button>
         <button class="tab" data-tab="warga">Warga</button>
       </div>
       <div id="shop-list"></div>
@@ -137,16 +142,17 @@
   const SAVE_KEY = "nyawityuk.v2";
 
   const TOOLS = {
-    kapak:    { name:"Kapak",    icon:"🪓", dmg:1, price:0,   use:0,  swing:0.42, desc:"Alat awal · 3 ayunan per pohon" },
-    pemotong: { name:"Pemotong", icon:"🪚", dmg:4, price:120, use:0,  swing:0.30, desc:"Chainsaw · 1 ayunan per pohon" },
-    api:      { name:"Api",      icon:"🔥", dmg:6, price:280, use:8,  swing:0.55, desc:"Bakar 3×3 petak · Rp8/pakai" },
-    traktor:  { name:"Traktor",  icon:"🚜", dmg:9, price:700, use:20, swing:0.34, desc:"Bersihkan 3×3 instan · Rp20/pakai" },
+    kapak:    { name:"Kapak",    icon:"🪓", dmg:2, price:0,   use:0,  swing:0.18, desc:"Alat awal · 1 ayunan per pohon" },
+    pemotong: { name:"Pemotong", icon:"🪚", dmg:5, price:120, use:0,  swing:0.11, desc:"Chainsaw · 1 ayunan, super cepat" },
+    api:      { name:"Api",      icon:"🔥", dmg:6, price:280, use:8,  swing:0.26, desc:"Bakar 3×3 petak · Rp8/pakai" },
+    traktor:  { name:"Traktor",  icon:"🚜", dmg:9, price:700, use:20, swing:0.16, desc:"Bersihkan 3×3 instan · Rp20/pakai" },
   };
   const ORDER = ["kapak","pemotong","api","traktor"];
-  const TREE_VALUE = 9, BIBIT_PRICE = 30, HARVEST_VALUE = 70;
-  const GROW_FULL = 34;
-  const REACH = 1.6;
-  const DEMO_EVERY = 10;
+  const TREE_VALUE = 10, BIBIT_PRICE = 25, HARVEST_VALUE = 60;
+  const GROW_FULL = 14;          // sawit cepat panen
+  const REACH = 1.75;
+  const DEMO_EVERY = 30;         // demo warga jauh lebih jarang
+  const COW_PRICE = 320, COW_INCOME = 14, COW_PERIOD = 5, COW_MAX = 8;
 
   const cv = document.getElementById("cv");
   const ctx = cv.getContext("2d");
@@ -162,11 +168,12 @@
         const roll = Math.random();
         let type;
         if (edge) type = roll > 0.55 ? "tree" : "grass";
-        else if (roll > 0.60) type = "tree";        // hutan
+        else if (roll > 0.72) type = "tree";        // hutan (lebih terbuka)
+        else if (roll > 0.64) type = "wheat";       // ladang gandum dekoratif
         else if (roll > 0.30) type = "grass";       // padang
         else if (roll > 0.24) type = "dirt";        // tanah terbuka
         else type = "grass";
-        r.push({ type, hp: type === "tree" ? 3 : 0, grow: 0, blocked: 0 });
+        r.push({ type, hp: type === "tree" ? 2 : 0, grow: 0, blocked: 0 });
       }
       t.push(r);
     }
@@ -181,7 +188,7 @@
   }
   function newState(){
     return {
-      tiles: makeTiles(), money: 0, chopped: 0, palms: 0, harvested: 0,
+      tiles: makeTiles(), money: 0, chopped: 0, palms: 0, harvested: 0, cows: [],
       bibit: 0, tool: "kapak", owned: { kapak:true },
       px: 11.5, py: 11.5, vx: 0, vy: 0, facing: "down", walk: 0, swing: 0,
       camX: 11.5, camY: 11.5, muted: false, t: 0,
@@ -194,6 +201,7 @@
     try{
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         tiles:S.tiles, money:S.money, chopped:S.chopped, palms:S.palms, harvested:S.harvested,
+        cows:S.cows,
         bibit:S.bibit, tool:S.tool, owned:S.owned, px:S.px, py:S.py, facing:S.facing,
         demo:S.demo, demoPaid:S.demoPaid, nextDemoAt:S.nextDemoAt, muted:S.muted
       }));
@@ -331,7 +339,7 @@
 
   function maybeDemo(){
     if (S.demo||S.chopped<S.nextDemoAt) return;
-    const demand=45+Math.round(S.chopped*1.6);
+    const demand=70+Math.round(S.chopped*0.9);
     const blockers=[]; let tries=0;
     while (blockers.length<3&&tries<300){
       tries++;
@@ -339,7 +347,7 @@
       const t=tileAt(x,y);
       if (t&&t.type==="dirt"&&!t.blocked){ t.blocked=1; blockers.push([x,y]); }
     }
-    S.demo={ demand, blockers, timer:32, x:S.px+1.3, y:S.py-1.5 };
+    S.demo={ demand, blockers, timer:55, x:S.px+1.3, y:S.py-1.5 };
     S.nextDemoAt=S.chopped+DEMO_EVERY;
     paintDemo(); beep(300,.2,"sawtooth",.05); haptic(30);
     toast("Warga demo! Mereka minta "+rp(demand),2600);
@@ -379,7 +387,7 @@
   // ================= update =================
   function update(dt){
     S.t+=dt;
-    const speed=3.2;
+    const speed=4.0;
     let mvx=S.vx, mvy=S.vy;
     const mag=Math.hypot(mvx,mvy);
     if (mag>0.12){
@@ -422,7 +430,7 @@
     const here=tileAt(Math.floor(S.px),Math.floor(S.py));
     if (here&&here.type==="dirt"&&S.bibit>0&&mag<=0.12){
       S.plantTimer+=dt;
-      if (S.plantTimer>0.5){ S.plantTimer=0; maybePlant(); }
+      if (S.plantTimer>0.16){ S.plantTimer=0; maybePlant(); }
     } else S.plantTimer=0;
 
     for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
@@ -436,7 +444,7 @@
     if (S.demo){
       S.demo.timer-=dt;
       if (S.demo.timer<=0){
-        S.demo.timer=26;
+        S.demo.timer=45;
         S.demo.demand=Math.round(S.demo.demand*1.15);
         let extra=0,tries=0;
         while (extra<2&&tries<120){
@@ -447,6 +455,21 @@
         }
         toast("Tuntutan naik jadi "+rp(S.demo.demand));
         paintDemo(); paintHud();
+      }
+    }
+
+    // sapi: jalan-jalan & hasilkan uang
+    for (const c of S.cows){
+      c.t+=dt; c.phase+=dt*2;
+      if (Math.random()<dt*0.9) c.dir+=(Math.random()-.5)*1.8;
+      const nx=c.x+Math.cos(c.dir)*0.55*dt, ny=c.y+Math.sin(c.dir)*0.55*dt;
+      const tt=tileAt(Math.floor(nx),Math.floor(ny));
+      if (tt&&(tt.type==="grass"||tt.type==="dirt")&&!tt.blocked){ c.x=nx; c.y=ny; }
+      else c.dir+=2.2;
+      if (c.t>=COW_PERIOD){
+        c.t=0; S.money+=COW_INCOME;
+        floatText(c.x-0.5, c.y-0.5, "+"+COW_INCOME, "#ffe9a8");
+        beep(700,.05,"triangle",.03); paintHud();
       }
     }
 
@@ -478,21 +501,21 @@
 
   function drawTree(x,y,t){
     const p=toScreen(x,y), s=cam.scale;
-    const shake=(t.hp<3)?Math.sin(S.t*24+x)*1.8*s:0;
+    const shake=(t.hp<2)?Math.sin(S.t*30+x)*2.2*s:0;
     shadow(x,y,22,10,0.20);
     ctx.fillStyle="#8a5a34";
-    ctx.beginPath(); ctx.roundRect(p.x-3.5*s+shake, p.y-40*s, 7*s, 38*s, 3*s); ctx.fill();
-    const blobs=[[0,-52,20,"#2f7d4a"],[-9,-62,15,"#3f9c5b"],[8,-63,14,"#4bb169"]];
+    ctx.beginPath(); ctx.roundRect(p.x-3.5*s+shake, p.y-34*s, 7*s, 32*s, 3*s); ctx.fill();
+    const blobs=[[0,-45,17,"#2f7d4a"],[-8,-53,13,"#3f9c5b"],[7,-54,12,"#4bb169"]];
     for (const [dx,dy,r,c] of blobs){
       ctx.fillStyle=c;
       ctx.beginPath(); ctx.arc(p.x+dx*s+shake, p.y+dy*s, r*s, 0, TAU); ctx.fill();
     }
     ctx.globalAlpha=.30; ctx.fillStyle="#c9f7cf";
-    ctx.beginPath(); ctx.arc(p.x-6*s+shake, p.y-66*s, 6*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x-5*s+shake, p.y-56*s, 5*s, 0, TAU); ctx.fill();
     ctx.globalAlpha=1;
-    if (t.hp<3){
+    if (t.hp<2){
       ctx.strokeStyle="rgba(35,22,10,.55)"; ctx.lineWidth=2*s;
-      ctx.beginPath(); ctx.moveTo(p.x-3*s+shake,p.y-40*s); ctx.lineTo(p.x+4*s+shake,p.y-14*s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x-3*s+shake,p.y-34*s); ctx.lineTo(p.x+4*s+shake,p.y-12*s); ctx.stroke();
     }
   }
 
@@ -526,6 +549,55 @@
     }
   }
 
+  const BARN={x:8,y:8};
+  function drawBarn(x,y){
+    const p=toScreen(x,y), s=cam.scale;
+    shadow(x,y,34,14,0.22);
+    ctx.fillStyle="#c0452f";
+    ctx.beginPath(); ctx.roundRect(p.x-26*s, p.y-46*s, 52*s, 40*s, 4*s); ctx.fill();
+    ctx.fillStyle="#a83a26";
+    ctx.fillRect(p.x-26*s, p.y-20*s, 52*s, 14*s);
+    ctx.fillStyle="#7a3a2a";
+    ctx.beginPath();
+    ctx.moveTo(p.x-32*s, p.y-46*s); ctx.lineTo(p.x, p.y-72*s);
+    ctx.lineTo(p.x+32*s, p.y-46*s); ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#f3e6d2";
+    ctx.beginPath(); ctx.roundRect(p.x-10*s, p.y-28*s, 20*s, 22*s, 3*s); ctx.fill();
+    ctx.strokeStyle="#c0452f"; ctx.lineWidth=2*s;
+    ctx.beginPath(); ctx.moveTo(p.x-10*s,p.y-28*s); ctx.lineTo(p.x+10*s,p.y-6*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x+10*s,p.y-28*s); ctx.lineTo(p.x-10*s,p.y-6*s); ctx.stroke();
+  }
+
+  function drawCow(x,y){
+    const p=toScreen(x,y), s=cam.scale, bob=Math.sin(S.t*3+x*2)*1.5*s;
+    shadow(x,y,20,9,0.20);
+    ctx.fillStyle="#f9f6ef";
+    ctx.beginPath(); ctx.ellipse(p.x, p.y-20*s+bob, 17*s, 11*s, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle="#3b3b3b";
+    ctx.beginPath(); ctx.arc(p.x-6*s, p.y-23*s+bob, 4.2*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+6*s, p.y-17*s+bob, 3.2*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#fdfbf6";
+    ctx.beginPath(); ctx.arc(p.x+13*s, p.y-26*s+bob, 8*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#e6d9c6";
+    ctx.beginPath(); ctx.ellipse(p.x+8.5*s, p.y-31*s+bob, 3*s, 2*s, -0.5, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x+17.5*s, p.y-31*s+bob, 3*s, 2*s, 0.5, 0, TAU); ctx.fill();
+    ctx.strokeStyle="#d8c9a8"; ctx.lineWidth=2*s; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(p.x+11*s,p.y-33*s+bob); ctx.lineTo(p.x+9*s,p.y-37*s+bob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x+16*s,p.y-33*s+bob); ctx.lineTo(p.x+18.5*s,p.y-37*s+bob); ctx.stroke();
+    ctx.fillStyle="#2b2b2b";
+    ctx.beginPath(); ctx.arc(p.x+15*s, p.y-27.5*s+bob, 1.5*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#f0b9b0";
+    ctx.beginPath(); ctx.ellipse(p.x+20*s, p.y-23*s+bob, 3.4*s, 2.6*s, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle="#efe9df"; ctx.lineWidth=3*s;
+    [[-9],[-3],[5],[11]].forEach(([dx],i)=>{
+      const off=Math.sin(S.t*6+i)*1.6*s;
+      ctx.beginPath(); ctx.moveTo(p.x+dx*s, p.y-11*s+bob);
+      ctx.lineTo(p.x+dx*s+off, p.y-1*s+bob); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.moveTo(p.x-16*s,p.y-22*s+bob);
+    ctx.quadraticCurveTo(p.x-22*s,p.y-16*s+bob,p.x-20*s,p.y-12*s+bob); ctx.stroke();
+  }
+
   function drawVillager(x,y){
     const p=toScreen(x,y), s=cam.scale, bob=Math.sin(S.t*4+x)*2*s;
     shadow(x,y,14,7,0.22);
@@ -541,7 +613,7 @@
   }
 
   function drawPlayer(){
-    const p=toScreen(S.px,S.py), s=cam.scale;
+    const p=toScreen(S.px,S.py), s=cam.scale*1.14;
     shadow(S.px,S.py,16,7,0.24);
     const bob=Math.abs(Math.sin(S.walk))*3*s;
     const sw=Math.sin(S.swing*Math.PI);
@@ -597,10 +669,21 @@
       if (p.x<-TW*s || p.x>cam.cssW+TW*s || p.y<-TH*s || p.y>cam.cssH+TH*s) continue;
       const green=(x+y)%2?"#5cb85f":"#55ae59";
       const col = t.type==="tree" ? green
+                : t.type==="wheat" ? ((x+y)%2?"#e3b53c":"#dcac31")
                 : t.type==="water" ? ((x+y)%2?"#49a6da":"#439dd0")
                 : t.type==="dirt" ? ((x+y)%2?"#b08860":"#a98057")
                 : green;
       diamond(x,y, col);
+      if (t.type==="wheat"){
+        ctx.save(); ctx.globalAlpha=.55; ctx.strokeStyle="#c48f22"; ctx.lineWidth=1.6*s;
+        for (let i=0;i<5;i++){
+          const ax=p.x+((x*13+i*7+y*5)%16-8)*s*0.55, ay=p.y+((y*11+i*5+x*3)%10-5)*s*0.35;
+          ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax+1.5*s,ay-6.5*s); ctx.stroke();
+          ctx.beginPath(); ctx.arc(ax+1.5*s, ay-7.5*s, 1.5*s, 0, TAU);
+          ctx.fillStyle="#f6d268"; ctx.fill();
+        }
+        ctx.restore();
+      }
       if (t.type==="dirt"){
         ctx.save(); ctx.globalAlpha=.15; ctx.fillStyle="#6b4a2f";
         for (let i=0;i<3;i++){
@@ -649,12 +732,16 @@
       const t=S.tiles[y][x];
       if (t.type==="tree"||t.type==="palm"||t.type==="sapling") objs.push({d:x+y,x,y,t});
     }
+    objs.push({d:BARN.x+BARN.y, x:BARN.x, y:BARN.y, barn:true});
+    for (const c of S.cows) objs.push({d:c.x+c.y, x:c.x, y:c.y, cow:true});
     if (S.demo) objs.push({d:S.demo.x+S.demo.y, x:S.demo.x, y:S.demo.y, villager:true});
     objs.push({d:S.px+S.py, player:true});
     objs.sort((a,b)=>a.d-b.d);
 
     for (const o of objs){
       if (o.player) drawPlayer();
+      else if (o.barn) drawBarn(o.x,o.y);
+      else if (o.cow) drawCow(o.x,o.y);
       else if (o.villager) drawVillager(o.x,o.y);
       else if (o.t.type==="tree") drawTree(o.x,o.y,o.t);
       else drawPalm(o.x,o.y,o.t);
@@ -742,10 +829,18 @@
   }
 
   // ================= UI =================
+  let lastMoney=null;
   function paintHud(){
-    document.getElementById("ui-money").textContent=Math.round(S.money).toLocaleString("id-ID");
+    const moneyEl=document.getElementById("ui-money");
+    moneyEl.textContent=Math.round(S.money).toLocaleString("id-ID");
+    if (lastMoney!==null && S.money>lastMoney){
+      const chip=moneyEl.closest(".chip");
+      chip.classList.remove("bump"); void chip.offsetWidth; chip.classList.add("bump");
+    }
+    lastMoney=S.money;
     document.getElementById("ui-chopped").textContent=S.chopped;
     document.getElementById("ui-palms").textContent=S.palms;
+    const cw=document.getElementById("ui-cows"); if (cw) cw.textContent=S.cows.length;
     document.getElementById("ui-tool").textContent=TOOLS[S.tool].name+(S.bibit?(" · bibit "+S.bibit):"");
   }
   let tab="alat";
@@ -757,7 +852,27 @@
     toast(t.name+" dibeli"); beep(720,.12,"square",.05);
     paintHud(); renderShop(); save();
   }
+  function buyCow(){
+    if (S.cows.length>=COW_MAX) return toast("Kandang penuh (maks "+COW_MAX+" sapi)");
+    if (S.money<COW_PRICE) return toast("Uang belum cukup");
+    let spot=null;
+    for (let i=0;i<80&&!spot;i++){
+      const x=clamp(Math.floor(BARN.x+(Math.random()-.5)*6),1,COLS-2);
+      const y=clamp(Math.floor(BARN.y+(Math.random()-.5)*6),1,ROWS-2);
+      const t=tileAt(x,y);
+      if (t&&(t.type==="grass"||t.type==="dirt")&&!t.blocked &&
+          !S.cows.some(c=>Math.hypot(c.x-(x+0.5),c.y-(y+0.5))<1.0))
+        spot={x:x+0.5,y:y+0.5};
+    }
+    if (!spot) return toast("Tidak ada tempat kosong untuk sapi");
+    S.money-=COW_PRICE;
+    S.cows.push({x:spot.x,y:spot.y,t:0,dir:Math.random()*TAU,phase:Math.random()*TAU});
+    haptic(12); beep(540,.12,"triangle",.05);
+    toast("Sapi baru masuk kandang 🐄"); paintHud(); renderShop(); save();
+  }
+
   function buyBibit(n){
+    if (!n || n<1) return;
     const cost=n*BIBIT_PRICE;
     if (S.money<cost) return toast("Uang belum cukup");
     S.money-=cost; S.bibit+=n; haptic(10);
@@ -785,6 +900,17 @@
         <button class="gold" data-bibit="1">Beli</button></div>
         <div class="item"><div class="ic">🌴</div><div class="b">
         <div class="n">Kebun</div><div class="d">Sawit ditanam ${S.palms} · dipanen ${S.harvested}</div></div></div>`;
+    } else if (tab==="ternak"){
+      const passive = S.cows.length*COW_INCOME*(60/COW_PERIOD);
+      html=`<div class="item"><div class="ic">🐄</div><div class="b">
+        <div class="n">Sapi perah (${S.cows.length}/${COW_MAX})</div>
+        <div class="d">Tiap ${COW_PERIOD} dtk menghasilkan ${rp(COW_INCOME)} otomatis, tanpa ditunggu.</div>
+        <div class="p">${rp(COW_PRICE)} / sapi${S.cows.length?` · pasif ${rp(passive)}/menit`:""}</div></div>
+        <button class="gold" data-cow="1" ${S.money<COW_PRICE||S.cows.length>=COW_MAX?"disabled":""}>Beli</button></div>
+        <div class="item"><div class="ic">🥛</div><div class="b">
+        <div class="n">Total susu terkumpul</div>
+        <div class="d">Sapi jalan sendiri di padang sekitar kamu — uangnya masuk otomatis.</div>
+        <div class="p">${rp(S.cows.length*COW_INCOME)} / putaran</div></div></div>`;
     } else {
       html=S.demo?`<div class="item"><div class="ic">📢</div><div class="b">
         <div class="n">Demo warga</div><div class="d">Menutup ${S.demo.blockers.length} petak · sisa ${Math.ceil(S.demo.timer)} dtk</div>
@@ -798,6 +924,7 @@
     list.querySelectorAll("[data-use]").forEach(b=>b.onclick=()=>buyTool(b.dataset.use));
     list.querySelectorAll("[data-bibit]").forEach(b=>b.onclick=()=>buyBibit(+b.dataset.bibit));
     list.querySelectorAll("[data-pay]").forEach(b=>b.onclick=()=>payDemo());
+    list.querySelectorAll("[data-cow]").forEach(b=>b.onclick=()=>buyCow());
   }
   const shopEl=document.getElementById("shop");
   document.getElementById("btn-shop").onclick=()=>{ shopEl.classList.add("open"); renderShop(); };
