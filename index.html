@@ -3,17 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#4aa05a">
+<meta name="theme-color" content="#5aa85f">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <title>NyawitYuk</title>
 <style>
   :root{
-    --gold:#ffd24a; --panel:rgba(16,36,22,.86); --line:rgba(255,255,255,.18);
-    --text:#f4fbf4; --muted:#b8d6bf;
+    --gold:#ffd24a; --panel:rgba(14,32,20,.86); --line:rgba(255,255,255,.18);
+    --text:#f4fbf4; --muted:#b8d6bf; --danger:#ff6b5e;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#3f8f4e;
+  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#4aa05a;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--text)}
   #app{position:fixed;inset:0;display:flex;flex-direction:column}
   #stage{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
@@ -22,9 +21,9 @@
   .top{position:absolute;top:0;left:0;right:0;z-index:6;pointer-events:none;
     padding:calc(8px + env(safe-area-inset-top)) 10px 0;
     display:flex;gap:6px;align-items:flex-start;justify-content:space-between}
-  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;max-width:78vw}
   .chip{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
-    border-radius:999px;padding:6px 10px;font-size:clamp(10.5px,3.05vw,13px);font-weight:700;
+    border-radius:999px;padding:6px 10px;font-size:clamp(10.5px,3vw,12.5px);font-weight:700;
     backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(0,0,0,.18)}
   .chip .v{color:var(--gold);font-variant-numeric:tabular-nums}
   .chip.t .v{color:#b9f0c4}
@@ -33,45 +32,51 @@
   .chip.bump{animation:bump .28s ease}
   @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
 
-  .demo-card{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translateX(-50%);
-    z-index:8;display:none;width:min(92vw,380px);background:rgba(46,20,12,.94);border:1px solid #f0885f;
-    border-radius:16px;padding:12px 14px;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
-  .demo-card.on{display:block}
-  .demo-card .t{font-size:13.5px;font-weight:800;color:#ffd0bd}
-  .demo-card .d{font-size:12px;color:#ffc6ae;margin-top:3px;line-height:1.4}
-  .demo-card .row{display:flex;gap:8px;margin-top:9px}
-  .demo-card button{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.10);color:#fff;
-    border-radius:11px;padding:10px;font-size:13px;font-weight:800}
-  .demo-card button.buy{background:linear-gradient(#ffd166,#f0a12b);color:#3a2405;border-color:#ffd166}
-  .demo-card button:disabled{opacity:.5}
+  /* HP + wave */
+  .vitals{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);
+    z-index:7;display:flex;align-items:center;gap:8px;pointer-events:none;
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:6px 12px 6px 8px;backdrop-filter:blur(10px);opacity:0;transition:opacity .25s}
+  .vitals.on{opacity:1}
+  .hpbar{width:min(44vw,180px);height:11px;border-radius:99px;background:rgba(0,0,0,.35);
+    overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+  .hpfill{height:100%;width:100%;border-radius:99px;
+    background:linear-gradient(90deg,#59e07a,#f2e14a 70%,#ff6b5e);transition:width .18s ease}
+  .vitals .wv{font-size:11.5px;font-weight:800;color:#ffd9d3;white-space:nowrap}
+
+  /* raid banner */
+  .banner{position:absolute;left:50%;top:calc(96px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-8px);
+    z-index:9;background:rgba(58,14,10,.94);border:1px solid #ff7a63;border-radius:14px;
+    padding:9px 14px;font-size:12.5px;font-weight:800;color:#ffd7cd;white-space:nowrap;
+    opacity:0;transition:.25s;pointer-events:none;box-shadow:0 10px 26px rgba(0,0,0,.35)}
+  .banner.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
   .bottom{position:absolute;left:0;right:0;bottom:0;z-index:7;pointer-events:none;
     padding:0 calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
     display:flex;align-items:flex-end;justify-content:flex-end}
   .pill{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;
     padding:12px 18px;font-size:13px;font-weight:800;backdrop-filter:blur(10px);pointer-events:auto;
-    box-shadow:0 6px 18px rgba(0,0,0,.25)}
+    box-shadow:0 6px 18px rgba(0,0,0,.25);position:relative;z-index:8}
   .pill.gold{background:linear-gradient(#ffd868,#f2a627);color:#3a2405;border-color:#ffd868}
   .pill:active{transform:scale(.97)}
-  .hint{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);
-    font-size:11.5px;color:#eaffee;text-shadow:0 1px 3px rgba(0,0,0,.6);z-index:5;opacity:.92;text-align:center}
 
-  #toasts{position:absolute;left:50%;top:calc(108px + env(safe-area-inset-top));transform:translateX(-50%);
-    z-index:9;display:grid;gap:7px;justify-items:center;width:min(88vw,360px);pointer-events:none}
-  .toast{background:rgba(12,26,16,.9);border:1px solid var(--line);border-radius:12px;padding:9px 13px;
-    font-size:12.5px;font-weight:700;animation:in .2s ease}
-  @keyframes in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  #toasts{position:absolute;left:50%;bottom:calc(74px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    z-index:9;display:grid;gap:7px;justify-items:center;width:min(86vw,340px);pointer-events:none}
+  .toast{background:rgba(10,24,14,.9);border:1px solid var(--line);border-radius:12px;padding:8px 12px;
+    font-size:12px;font-weight:700;animation:in .2s ease}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-  .sheet{position:fixed;inset:0;z-index:30;background:rgba(6,16,10,.72);backdrop-filter:blur(6px);
+  .sheet{position:fixed;inset:0;z-index:40;background:rgba(5,14,9,.74);backdrop-filter:blur(7px);
     display:none;place-items:end center}
   .sheet.open{display:grid}
-  .panel{width:min(560px,100%);max-height:86vh;overflow:auto;background:#14301d;border:1px solid var(--line);
-    border-radius:22px 22px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+  .panel{width:min(560px,100%);max-height:86vh;overflow:auto;background:#12301c;border:1px solid var(--line);
+    border-radius:22px 22px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+    position:relative;z-index:41}
   .panel h2{margin:0 0 2px;font-size:18px}
   .panel p{margin:0 0 12px;font-size:12px;color:var(--muted)}
-  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tabs{display:flex;gap:5px;margin-bottom:12px}
   .tab{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);
-    border-radius:11px;padding:10px;font-size:12.5px;font-weight:800}
+    border-radius:11px;padding:9px 4px;font-size:12px;font-weight:800}
   .tab.active{background:#2f7d4f;border-color:#49a86b}
   .item{display:flex;gap:11px;align-items:center;border:1px solid var(--line);border-radius:14px;
     padding:11px;margin-bottom:8px;background:rgba(255,255,255,.04)}
@@ -82,9 +87,19 @@
   .item .d{font-size:11.5px;color:var(--muted);line-height:1.35;margin-top:2px}
   .item .p{font-size:12.5px;font-weight:800;color:var(--gold);margin-top:3px}
   .item button{border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--text);
-    border-radius:10px;padding:10px 13px;font-size:12.5px;font-weight:800;flex:none}
+    border-radius:10px;padding:10px 13px;font-size:12.5px;font-weight:800;flex:none;min-width:64px}
   .item button.gold{background:linear-gradient(#ffd868,#f2a627);color:#3a2405;border-color:#ffd868}
   .item button:disabled{opacity:.45}
+
+  /* layar mati */
+  .dead{position:fixed;inset:0;z-index:50;display:none;place-items:center;
+    background:radial-gradient(circle at 50% 45%,rgba(90,10,10,.72),rgba(6,10,8,.92))}
+  .dead.on{display:grid}
+  .dead .box{text-align:center;padding:26px}
+  .dead h2{margin:0 0 6px;font-size:22px;color:#ffd7cd}
+  .dead p{margin:0 0 16px;font-size:13px;color:#f0c4bb}
+  .dead button{border:1px solid #ffd868;background:linear-gradient(#ffd868,#f2a627);color:#3a2405;
+    border-radius:14px;padding:13px 22px;font-size:14px;font-weight:900}
 </style>
 </head>
 <body>
@@ -97,30 +112,24 @@
       <div class="chip t">Tebang <span class="v" id="ui-chopped">0</span></div>
       <div class="chip p">Sawit <span class="v" id="ui-palms">0</span></div>
       <div class="chip c">Sapi <span class="v" id="ui-cows">0</span></div>
-      <div class="chip" id="ui-tool">Kapak</div>
     </div>
     <div style="pointer-events:auto"><button class="pill" id="btn-mute" style="padding:9px 12px">🔊</button></div>
   </div>
 
-  <div class="demo-card" id="demo-card">
-    <div class="t">📢 Warga demo</div>
-    <div class="d" id="demo-text"></div>
-    <div class="row">
-      <button class="buy" id="btn-pay">Bayar</button>
-      <button id="btn-ignore">Nanti</button>
-    </div>
+  <div class="vitals" id="vitals">
+    <div class="hpbar"><div class="hpfill" id="hpfill"></div></div>
+    <span class="wv" id="wave-label">Gel. 0</span>
   </div>
 
+  <div class="banner" id="banner"></div>
   <div id="toasts"></div>
-
-  <div class="hint" id="hint">Geser analog untuk jalan · dekat pohon = otomatis menebang</div>
 
   <div class="bottom"><button class="pill gold" id="btn-shop">Toko</button></div>
 
   <div class="sheet" id="shop">
     <div class="panel">
       <h2>Toko & Kebun</h2>
-      <p>Tebang hutan → uang → alat & bibit sawit → panen. Warga sekitar minta bagian.</p>
+      <p>Tebang hutan → uang → alat, bibit, sapi. Warga akan menyerang — bertahan sambil menanam.</p>
       <div class="tabs">
         <button class="tab active" data-tab="alat">Alat</button>
         <button class="tab" data-tab="bibit">Bibit</button>
@@ -131,6 +140,14 @@
       <button class="pill" id="btn-close" style="width:100%;margin-top:8px">Tutup</button>
     </div>
   </div>
+
+  <div class="dead" id="dead">
+    <div class="box">
+      <h2>Kamu tumbang</h2>
+      <p id="dead-info">Warga menyerbu kebunmu.</p>
+      <button id="btn-respawn">Bangkit lagi</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -138,27 +155,30 @@
   "use strict";
   // ================= dunia =================
   const COLS = 22, ROWS = 22;
-  const TW = 68, TH = 34;                  // tile isometrik 2:1
-  const SAVE_KEY = "nyawityuk.v2";
+  const TW = 68, TH = 34;
+  const SAVE_KEY = "nyawityuk.v4";
 
   const TOOLS = {
     kapak:    { name:"Kapak",    icon:"🪓", dmg:2, price:0,   use:0,  swing:0.18, desc:"Alat awal · 1 ayunan per pohon" },
-    pemotong: { name:"Pemotong", icon:"🪚", dmg:5, price:120, use:0,  swing:0.11, desc:"Chainsaw · 1 ayunan, super cepat" },
+    pemotong: { name:"Pemotong", icon:"🪚", dmg:5, price:120, use:0,  swing:0.11, desc:"Chainsaw · ayunan super cepat" },
     api:      { name:"Api",      icon:"🔥", dmg:6, price:280, use:8,  swing:0.26, desc:"Bakar 3×3 petak · Rp8/pakai" },
     traktor:  { name:"Traktor",  icon:"🚜", dmg:9, price:700, use:20, swing:0.16, desc:"Bersihkan 3×3 instan · Rp20/pakai" },
   };
   const ORDER = ["kapak","pemotong","api","traktor"];
-  const TREE_VALUE = 10, BIBIT_PRICE = 25, HARVEST_VALUE = 60;
-  const GROW_FULL = 14;          // sawit cepat panen
+  const TREE_VALUE = 10, BIBIT_PRICE = 25, HARVEST_VALUE = 60, GROW_FULL = 14;
   const REACH = 1.75;
-  const DEMO_EVERY = 30;         // demo warga jauh lebih jarang
   const COW_PRICE = 320, COW_INCOME = 14, COW_PERIOD = 5, COW_MAX = 8;
+
+  // tempur
+  const RAID_EVERY = 30;             // tiap 30 pohon → gelombang warga
+  const RAIDER_HP = 95, RAIDER_DMG = 11, RAIDER_SPEED = 1.95, RAIDER_ATTACK_CD = 1.1;
+  const PLAYER_HP = 100, HIT_DMG = 26, HIT_RANGE = 1.05, INVULN = 1.6;
 
   const cv = document.getElementById("cv");
   const ctx = cv.getContext("2d");
   const TAU = Math.PI * 2;
 
-  // ================= state =================
+  // ================= peta =================
   function makeTiles(){
     const t = [];
     for (let y = 0; y < ROWS; y++){
@@ -168,10 +188,10 @@
         const roll = Math.random();
         let type;
         if (edge) type = roll > 0.55 ? "tree" : "grass";
-        else if (roll > 0.72) type = "tree";        // hutan (lebih terbuka)
-        else if (roll > 0.64) type = "wheat";       // ladang gandum dekoratif
-        else if (roll > 0.30) type = "grass";       // padang
-        else if (roll > 0.24) type = "dirt";        // tanah terbuka
+        else if (roll > 0.80) type = "tree";
+        else if (roll > 0.64) type = "wheat";
+        else if (roll > 0.30) type = "grass";
+        else if (roll > 0.24) type = "dirt";
         else type = "grass";
         r.push({ type, hp: type === "tree" ? 2 : 0, grow: 0, blocked: 0 });
       }
@@ -179,20 +199,22 @@
     }
     for (let y = 10; y <= 12; y++) for (let x = 10; x <= 13; x++)
       t[y][x] = { type:"dirt", hp:0, grow:0, blocked:0 };
-    // kolam kecil dekoratif
     for (let y = 15; y <= 17; y++) for (let x = 4; x <= 7; x++)
       t[y][x] = { type:"water", hp:0, grow:0, blocked:0 };
     for (let y = 5; y <= 7; y++) for (let x = 16; x <= 18; x++)
       t[y][x] = { type:"water", hp:0, grow:0, blocked:0 };
     return t;
   }
+
   function newState(){
     return {
       tiles: makeTiles(), money: 0, chopped: 0, palms: 0, harvested: 0, cows: [],
       bibit: 0, tool: "kapak", owned: { kapak:true },
       px: 11.5, py: 11.5, vx: 0, vy: 0, facing: "down", walk: 0, swing: 0,
       camX: 11.5, camY: 11.5, muted: false, t: 0,
-      demo: null, demoPaid: 0, nextDemoAt: DEMO_EVERY, plantTimer: 0, swingCd: 0
+      hp: PLAYER_HP, hpRegenDelay: 0, invuln: 0, dead: false,
+      raiders: [], wave: 0, nextRaidAt: RAID_EVERY, kills: 0,
+      hurtFlash: 0, shake: 0, plantTimer: 0, swingCd: 0
     };
   }
   let S = null;
@@ -201,19 +223,18 @@
     try{
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         tiles:S.tiles, money:S.money, chopped:S.chopped, palms:S.palms, harvested:S.harvested,
-        cows:S.cows,
-        bibit:S.bibit, tool:S.tool, owned:S.owned, px:S.px, py:S.py, facing:S.facing,
-        demo:S.demo, demoPaid:S.demoPaid, nextDemoAt:S.nextDemoAt, muted:S.muted
+        cows:S.cows, bibit:S.bibit, tool:S.tool, owned:S.owned, px:S.px, py:S.py,
+        facing:S.facing, muted:S.muted, wave:S.wave, kills:S.kills, nextRaidAt:S.nextRaidAt
       }));
     }catch{}
   }
   function load(){
     try{
-      const raw = localStorage.getItem(SAVE_KEY);
+      const raw=localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
-      const d = JSON.parse(raw);
-      if (!d || !Array.isArray(d.tiles) || d.tiles.length !== ROWS) return null;
-      return Object.assign(newState(), d);
+      const d=JSON.parse(raw);
+      if (!d||!Array.isArray(d.tiles)||d.tiles.length!==ROWS) return null;
+      return Object.assign(newState(), d, { raiders:[], hp:PLAYER_HP, dead:false, invuln:0 });
     }catch{ return null; }
   }
 
@@ -222,11 +243,12 @@
   const tileAt=(x,y)=>(x<0||y<0||x>=COLS||y>=ROWS)?null:S.tiles[y][x];
   const isSolid=t=>t&&(t.type==="tree"||t.type==="palm"||t.type==="water");
   const rp=n=>"Rp"+Math.round(n).toLocaleString("id-ID");
+  const hash=(x,y)=>{ let h=x*374761393+y*668265263; h=(h^(h>>13))*1274126177; return (h^(h>>16))>>>0; };
 
   function haptic(ms=10){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch{} }
-  function toast(msg, ms=1900){
+  function toast(msg, ms=1800){
     const box=document.getElementById("toasts");
-    if (box.lastElementChild && box.lastElementChild.textContent===msg) return;
+    if (box.lastElementChild&&box.lastElementChild.textContent===msg) return;
     const el=document.createElement("div"); el.className="toast"; el.textContent=msg;
     box.appendChild(el);
     while (box.children.length>3) box.firstElementChild.remove();
@@ -234,7 +256,7 @@
   }
   let actx=null;
   function beep(freq,dur,type="sine",gain=0.05){
-    if (S && S.muted) return;
+    if (S&&S.muted) return;
     try{
       actx=actx||new (window.AudioContext||window.webkitAudioContext)();
       const o=actx.createOscillator(), g=actx.createGain();
@@ -245,10 +267,9 @@
     }catch{}
   }
 
-  // ================= kamera & proyeksi =================
-  let cam = { scale:1, ox:0, oy:0, cssW:0, cssH:0, dpr:1 };
-  const isoX=(x,y)=>(x-y)*TW/2;
-  const isoY=(x,y)=>(x+y)*TH/2;
+  // ================= kamera =================
+  let cam={ scale:1, ox:0, oy:0, cssW:0, cssH:0, dpr:1 };
+  const isoX=(x,y)=>(x-y)*TW/2, isoY=(x,y)=>(x+y)*TH/2;
 
   function resize(){
     const stage=document.getElementById("stage");
@@ -258,17 +279,29 @@
     if (cv.width!==Math.round(cssW*dpr)||cv.height!==Math.round(cssH*dpr)){
       cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
     }
-    cam={ scale: clamp(cssW/340, 0.85, 1.55), cssW, cssH, dpr, ox: cssW/2, oy: cssH*0.54 };
+    cam={ scale: clamp(cssW/340,0.85,1.55), cssW, cssH, dpr, ox: cssW/2, oy: cssH*0.54 };
   }
   function toScreen(x,y){
-    const sx=(isoX(x,y)-isoX(S.camX,S.camY))*cam.scale + cam.ox;
-    const sy=(isoY(x,y)-isoY(S.camX,S.camY))*cam.scale + cam.oy;
-    return { x:sx, y:sy };
+    return {
+      x:(isoX(x,y)-isoX(S.camX,S.camY))*cam.scale+cam.ox + S.shake*Math.sin(S.t*90)*6,
+      y:(isoY(x,y)-isoY(S.camX,S.camY))*cam.scale+cam.oy + S.shake*Math.cos(S.t*80)*4
+    };
   }
 
-  // ================= aksi otomatis =================
+  // ================= partikel =================
   const floats=[], parts=[];
+  function spawn(x,y,color,n=8,spread=1){
+    for (let i=0;i<n;i++){
+      parts.push({ x:x+0.5+(Math.random()-.5)*.5, y:y+0.5+(Math.random()-.5)*.5,
+        z:16+Math.random()*14, vx:(Math.random()-.5)*1.8*spread, vy:(Math.random()-.5)*1.8*spread,
+        vz:34+Math.random()*46, life:0.6, color, rot:Math.random()*TAU });
+    }
+  }
+  function floatText(x,y,text,color){
+    floats.push({ x:x+0.5, y:y+0.5, z:34, text, color, life:1.1 });
+  }
 
+  // ================= aksi =================
   function targetNear(){
     let best=null;
     const cx=Math.floor(S.px), cy=Math.floor(S.py);
@@ -276,30 +309,39 @@
       const t=tileAt(x,y);
       if (!t||t.blocked) continue;
       if (t.type!=="tree"&&t.type!=="palm") continue;
-      const d=Math.hypot(x+0.5-S.px, y+0.5-S.py);
-      if (d<=REACH && (!best||d<best.d)) best={x,y,d,t};
+      const d=Math.hypot(x+0.5-S.px,y+0.5-S.py);
+      if (d<=REACH&&(!best||d<best.d)) best={x,y,d,t};
     }
     return best;
   }
+  function raidersNear(){
+    const out=[];
+    for (const r of S.raiders){
+      const d=Math.hypot(r.x-S.px, r.y-S.py);
+      if (d<=HIT_RANGE) out.push({r,d});
+    }
+    return out;
+  }
   function faceTo(x,y){
-    const dx=x+0.5-S.px, dy=y+0.5-S.py;
+    const dx=x-S.px, dy=y-S.py;
     S.facing=Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");
   }
 
   function swingAt(tg){
     const tool=TOOLS[S.tool], {x,y,t}=tg;
     S.swing=1;
+
     if (t.type==="palm"){
       if (t.grow>=GROW_FULL){
         S.money+=HARVEST_VALUE; S.harvested++;
         t.grow=GROW_FULL*0.45;
         floatText(x,y,"+"+HARVEST_VALUE,"#9fe6ff");
         spawn(x,y,"#9fe6ff",10); beep(880,.12,"triangle",.06); haptic(16);
-        toast("Panen sawit "+rp(HARVEST_VALUE)); paintHud(); save();
+        paintHud(); save();
       }
       return;
     }
-    if (tool.use && S.money<tool.use){ toast("Uang kurang untuk "+tool.name); return; }
+    if (tool.use&&S.money<tool.use){ toast("Uang kurang untuk "+tool.name); return; }
     if (tool.use) S.money-=tool.use;
 
     const area=(S.tool==="api"||S.tool==="traktor")?1:0;
@@ -308,23 +350,21 @@
       const tt=tileAt(xx,yy);
       if (!tt||tt.type!=="tree") continue;
       tt.hp-=tool.dmg;
-      if (tt.hp<=0){ tt.type="dirt"; tt.hp=0; tt.grow=0; fell++; spawn(xx,yy,"#4fbf6a",7); }
+      if (tt.hp<=0){ tt.type="dirt"; tt.hp=0; tt.grow=0; fell++; spawn(xx,yy,"#7fd08c",9,1.3); }
     }
-    if (fell===0 && area===0){
+    if (fell===0&&area===0){
       t.hp-=tool.dmg;
-      if (t.hp<=0){ t.type="dirt"; t.hp=0; fell=1; spawn(x,y,"#4fbf6a",8); }
+      if (t.hp<=0){ t.type="dirt"; t.hp=0; fell=1; spawn(x,y,"#7fd08c",9); }
       else spawn(x,y,"#c9a36a",4);
     }
     if (fell>0){
       const earn=fell*TREE_VALUE;
       S.money+=earn; S.chopped+=fell;
       floatText(x,y,"+"+earn,"#eaffb0");
-      beep(240+Math.random()*70,.08,"square",.05); haptic(fell>1?20:12);
-      if (fell>1) toast(fell+" pohon tumbang · "+rp(earn),1400);
-      maybeDemo(); paintHud(); save();
-    } else {
-      beep(150,.05,"sine",.028);
-    }
+      beep(260+Math.random()*70,.07,"square",.05); haptic(fell>1?20:12);
+      if (fell>1) toast(fell+" pohon tumbang · "+rp(earn),1300);
+      maybeRaid(); paintHud(); save();
+    } else beep(150,.05,"sine",.025);
   }
 
   function maybePlant(){
@@ -333,106 +373,198 @@
     const t=tileAt(x,y);
     if (!t||t.type!=="dirt"||t.blocked) return;
     t.type="sapling"; t.grow=0.001; S.bibit--; haptic(8);
-    beep(520,.1,"triangle",.05); toast("Bibit sawit ditanam 🌱",1400);
+    beep(520,.1,"triangle",.05);
+    spawn(x,y,"#8fe6a0",6,0.8); paintHud(); save();
+  }
+
+  // ================= gelombang warga =================
+  function maybeRaid(){
+    if (S.dead) return;
+    if (S.chopped < S.nextRaidAt) return;
+    S.nextRaidAt = S.chopped + RAID_EVERY;
+    startRaid();
+  }
+  function startRaid(){
+    S.wave++;
+    const n = Math.min(1+S.wave, 5);
+    for (let i=0;i<n;i++){
+      const ang = Math.random()*TAU;
+      const dist = 6+Math.random()*3;
+      const x = clamp(S.px+Math.cos(ang)*dist, 1, COLS-2);
+      const y = clamp(S.py+Math.sin(ang)*dist, 1, ROWS-2);
+      S.raiders.push({ x, y, hp:RAIDER_HP, maxHp:RAIDER_HP, cd:0.6+Math.random()*0.6,
+        facing:"down", walk:0, hurt:0, phase:Math.random()*TAU });
+    }
+    banner("Warga menyerang! Gelombang "+S.wave+" · "+n+" orang");
+    beep(180,.25,"sawtooth",.06); haptic(45);
+    document.getElementById("vitals").classList.add("on");
+    paintHud();
+  }
+  let bannerTimer=null;
+  function banner(text){
+    const el=document.getElementById("banner");
+    el.textContent=text; el.classList.add("on");
+    clearTimeout(bannerTimer);
+    bannerTimer=setTimeout(()=>el.classList.remove("on"), 2600);
+  }
+
+  function damagePlayer(dmg){
+    if (S.invuln>0||S.dead) return;
+    S.hp=Math.max(0,S.hp-dmg);
+    S.invuln=INVULN; S.hpRegenDelay=5; S.hurtFlash=1; S.shake=0.35;
+    haptic(35); beep(120,.16,"square",.07);
+    paintHud();
+    if (S.hp<=0) playerDown();
+  }
+  function playerDown(){
+    S.dead=true;
+    const lost=Math.round(S.money*0.15);
+    S.money=Math.max(0,S.money-lost);
+    document.getElementById("dead-info").textContent =
+      "Warga menyerbu kebunmu. Kamu kehilangan "+rp(lost)+" dan gelombang direset.";
+    document.getElementById("dead").classList.add("on");
+    beep(90,.5,"sawtooth",.07);
+    paintHud(); save();
+  }
+  function respawn(){
+    S.dead=false; S.hp=PLAYER_HP; S.invuln=2.5; S.raiders=[]; S.shake=0;
+    S.px=11.5; S.py=11.5; S.camX=11.5; S.camY=11.5;
+    document.getElementById("dead").classList.remove("on");
+    document.getElementById("vitals").classList.remove("on");
+    toast("Bangkit lagi — tanam sawit sambil bertahan 🌱", 2400);
     paintHud(); save();
   }
 
-  function maybeDemo(){
-    if (S.demo||S.chopped<S.nextDemoAt) return;
-    const demand=70+Math.round(S.chopped*0.9);
-    const blockers=[]; let tries=0;
-    while (blockers.length<3&&tries<300){
-      tries++;
-      const x=1+Math.floor(Math.random()*(COLS-2)), y=1+Math.floor(Math.random()*(ROWS-2));
+  // ================= sapi =================
+  function buyCow(){
+    if (S.cows.length>=COW_MAX) return toast("Kandang penuh (maks "+COW_MAX+" sapi)");
+    if (S.money<COW_PRICE) return toast("Uang belum cukup");
+    const spot=findSpot(BARN.x, BARN.y, 6);
+    if (!spot) return toast("Tidak ada tempat kosong");
+    S.money-=COW_PRICE;
+    S.cows.push({ x:spot.x, y:spot.y, t:0, dir:Math.random()*TAU, phase:Math.random()*TAU });
+    haptic(12); beep(540,.12,"triangle",.05);
+    toast("Sapi baru masuk kandang 🐄"); paintHud(); renderShop(); save();
+  }
+  function findSpot(cx, cy, radius){
+    for (let i=0;i<90;i++){
+      const x=clamp(Math.floor(cx+(Math.random()-.5)*radius),1,COLS-2);
+      const y=clamp(Math.floor(cy+(Math.random()-.5)*radius),1,ROWS-2);
       const t=tileAt(x,y);
-      if (t&&t.type==="dirt"&&!t.blocked){ t.blocked=1; blockers.push([x,y]); }
+      if (t&&(t.type==="grass"||t.type==="dirt")&&!t.blocked) return { x:x+0.5, y:y+0.5 };
     }
-    S.demo={ demand, blockers, timer:55, x:S.px+1.3, y:S.py-1.5 };
-    S.nextDemoAt=S.chopped+DEMO_EVERY;
-    paintDemo(); beep(300,.2,"sawtooth",.05); haptic(30);
-    toast("Warga demo! Mereka minta "+rp(demand),2600);
-  }
-  function payDemo(){
-    if (!S.demo) return;
-    if (S.money<S.demo.demand) return toast("Uang belum cukup: butuh "+rp(S.demo.demand));
-    S.money-=S.demo.demand; S.demoPaid+=S.demo.demand;
-    for (const [x,y] of S.demo.blockers){ const t=tileAt(x,y); if (t) t.blocked=0; }
-    S.demo=null; paintDemo(); paintHud(); save();
-    toast("Warga tenang 🙏"); beep(660,.14,"triangle",.06);
-  }
-  function paintDemo(){
-    const card=document.getElementById("demo-card");
-    if (!S.demo){ card.classList.remove("on"); return; }
-    card.classList.add("on");
-    document.getElementById("demo-text").innerHTML =
-      "Mereka menutup "+S.demo.blockers.length+" petak dan minta <b>"+rp(S.demo.demand)+
-      "</b>.<br>Dibiarkan → tuntutan naik dalam "+Math.ceil(S.demo.timer)+" dtk.";
-    const btn=document.getElementById("btn-pay");
-    btn.textContent="Bayar "+rp(S.demo.demand);
-    btn.disabled = S.money < S.demo.demand;
-  }
-
-  // ================= partikel =================
-  function spawn(x,y,color,n=8){
-    for (let i=0;i<n;i++){
-      parts.push({ x:x+0.5+(Math.random()-.5)*.5, y:y+0.5+(Math.random()-.5)*.5,
-        z:16+Math.random()*14, vx:(Math.random()-.5)*1.6, vy:(Math.random()-.5)*1.6,
-        vz:36+Math.random()*44, life:0.65, color });
-    }
-  }
-  function floatText(x,y,text,color){
-    floats.push({ x:x+0.5, y:y+0.5, z:34, text, color, life:1.1 });
+    return null;
   }
 
   // ================= update =================
   function update(dt){
     S.t+=dt;
-    const speed=4.0;
-    let mvx=S.vx, mvy=S.vy;
-    const mag=Math.hypot(mvx,mvy);
-    if (mag>0.12){
-      if (mag>1){ mvx/=mag; mvy/=mag; }
-      const nx=S.px+mvx*speed*dt, ny=S.py+mvy*speed*dt;
-      if (!isSolid(tileAt(Math.floor(nx),Math.floor(S.py)))) S.px=clamp(nx,0.6,COLS-0.6);
-      if (!isSolid(tileAt(Math.floor(S.px),Math.floor(ny)))) S.py=clamp(ny,0.6,ROWS-0.6);
-      S.walk+=dt*9;
-      S.facing=Math.abs(mvx)>Math.abs(mvy)?(mvx>0?"right":"left"):(mvy>0?"down":"up");
-    } else {
-      S.walk*=Math.max(0,1-dt*8);
+    S.invuln=Math.max(0,S.invuln-dt);
+    S.hurtFlash=Math.max(0,S.hurtFlash-dt*2.6);
+    S.shake=Math.max(0,S.shake-dt*2.4);
+
+    if (!S.dead){
+      const speed=4.0;
+      let mvx=S.vx, mvy=S.vy;
+      const mag=Math.hypot(mvx,mvy);
+      if (mag>0.12){
+        if (mag>1){ mvx/=mag; mvy/=mag; }
+        const nx=S.px+mvx*speed*dt, ny=S.py+mvy*speed*dt;
+        if (!isSolid(tileAt(Math.floor(nx),Math.floor(S.py)))) S.px=clamp(nx,0.6,COLS-0.6);
+        if (!isSolid(tileAt(Math.floor(S.px),Math.floor(ny)))) S.py=clamp(ny,0.6,ROWS-0.6);
+        S.walk+=dt*10;
+        S.facing=Math.abs(mvx)>Math.abs(mvy)?(mvx>0?"right":"left"):(mvy>0?"down":"up");
+      } else S.walk*=Math.max(0,1-dt*8);
+
+      // regen
+      S.hpRegenDelay=Math.max(0,S.hpRegenDelay-dt);
+      if (S.hpRegenDelay===0&&S.hp<PLAYER_HP) S.hp=Math.min(PLAYER_HP,S.hp+dt*7);
+
+      // otomatis menebang / memukul warga
+      S.swing=Math.max(0,S.swing-dt*3.6);
+      S.swingCd-=dt;
+      const nearRaiders=raidersNear();
+      const tg=targetNear();
+      if (nearRaiders.length){
+        const closest=nearRaiders.sort((a,b)=>a.d-b.d)[0].r;
+        faceTo(closest.x,closest.y);
+        if (S.swingCd<=0){
+          S.swingCd=0.34; S.swing=1;
+          for (const {r,d} of raidersNear()){
+            r.hp-=HIT_DMG; r.hurt=1;
+            const ang=Math.atan2(r.y-S.py, r.x-S.px);
+            r.x=clamp(r.x+Math.cos(ang)*0.45,1,COLS-2);
+            r.y=clamp(r.y+Math.sin(ang)*0.45,1,ROWS-2);
+            beep(420,.07,"square",.05); haptic(14);
+            if (r.hp<=0){
+              S.raiders=S.raiders.filter(o=>o!==r);
+              S.kills++; S.money+=25;
+              floatText(r.x-.5,r.y-.5,"+25","#ffd0a3");
+              spawn(r.x-.5,r.y-.5,"#e08a6f",10);
+            }
+          }
+          if (S.raiders.length===0){
+            banner("Gelombang "+S.wave+" berhasil dihan­tui · +"+rp(60));
+            S.money+=60; paintHud();
+          }
+        }
+      } else if (tg){
+        faceTo(tg.x+0.5,tg.y+0.5);
+        if (S.swingCd<=0){ S.swingCd=TOOLS[S.tool].swing; swingAt(tg); }
+      } else {
+        S.swingCd=0;
+        const here=tileAt(Math.floor(S.px),Math.floor(S.py));
+        if (here&&here.type==="dirt"&&S.bibit>0&&mag<=0.12){
+          S.plantTimer+=dt;
+          if (S.plantTimer>0.16){ S.plantTimer=0; maybePlant(); }
+        } else S.plantTimer=0;
+      }
     }
 
-    S.camX += (S.px-S.camX)*Math.min(1,dt*6);
-    S.camY += (S.py-S.camY)*Math.min(1,dt*6);
-
-    // jaga kamera tetap di dalam peta (jangan sampai kelihatan dunia kosong)
+    // kamera
+    S.camX+=(S.px-S.camX)*Math.min(1,dt*6);
+    S.camY+=(S.py-S.camY)*Math.min(1,dt*6);
     {
-      const halfW=(cam.cssW/2)/cam.scale, halfH=(cam.cssH/2)/cam.scale;
-      let ix=isoX(S.camX,S.camY), iy=isoY(S.camX,S.camY);
-      const minIx=-ROWS*TW/2, maxIx=COLS*TW/2;
-      const minIy=-TH, maxIy=(COLS+ROWS)*TH/2;
-      ix = (maxIx-minIx > halfW*2) ? clamp(ix, minIx+halfW, maxIx-halfW) : (minIx+maxIx)/2;
-      iy = (maxIy-minIy > halfH*2) ? clamp(iy, minIy+halfH, maxIy-halfH) : (minIy+maxIy)/2;
-      const nx=(ix/(TW/2)+iy/(TH/2))/2, ny=(iy/(TH/2)-ix/(TW/2))/2;
-      S.camX=nx; S.camY=ny;
+      // kunci kamera memakai koordinat isometrik asli:
+      // u = x-y (rentang peta), v = x+y (rentang peta)
+      const spanX=cam.cssW/(cam.scale*TW/2), spanY=cam.cssH/(cam.scale*TH/2);
+      let u=S.camX-S.camY, v=S.camX+S.camY;
+      const uMin=-(ROWS-1), uMax=COLS-1, vMin=0, vMax=COLS+ROWS-2;
+      u = (uMax-uMin > spanX) ? clamp(u, uMin+spanX/2, uMax-spanX/2) : (uMin+uMax)/2;
+      v = (vMax-vMin > spanY) ? clamp(v, vMin+spanY/2, vMax-spanY/2) : (vMin+vMax)/2;
+      S.camX=(u+v)/2; S.camY=(v-u)/2;
     }
 
-    S.swing=Math.max(0,S.swing-dt*3.2);
-    S.swingCd-=dt;
-    const tg=targetNear();
-    if (tg){
-      faceTo(tg.x,tg.y);
-      if (S.swingCd<=0){ S.swingCd=TOOLS[S.tool].swing; swingAt(tg); }
-    } else {
-      S.swingCd=0;
+    // warga: chase & serang
+    for (const r of S.raiders){
+      r.hurt=Math.max(0,r.hurt-dt*3);
+      const dx=S.px-r.x, dy=S.py-r.y;
+      const dist=Math.hypot(dx,dy)||1;
+      r.facing=Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");
+      if (dist>1.18){
+        const step=RAIDER_SPEED*dt;
+        const nx=r.x+dx/dist*step, ny=r.y+dy/dist*step;
+        const freeX=!isSolid(tileAt(Math.floor(nx),Math.floor(r.y)));
+        const freeY=!isSolid(tileAt(Math.floor(r.x),Math.floor(ny)));
+        if (freeX) r.x=nx;
+        if (freeY) r.y=ny;
+        if (!freeX&&!freeY){
+          // nyangkut pohon → geser menyamping biar tidak mandek
+          const px=-dy/dist*step, py=dx/dist*step;
+          const side=((r.phase||0)%2<1)?1:-1;
+          const sx=r.x+px*side, sy=r.y+py*side;
+          if (!isSolid(tileAt(Math.floor(sx),Math.floor(r.y)))) r.x=sx;
+          else if (!isSolid(tileAt(Math.floor(r.x),Math.floor(sy)))) r.y=sy;
+          else { r.x+=dx/dist*step*0.4; r.y+=dy/dist*step*0.4; }
+        }
+        r.walk+=dt*8;
+      } else {
+        r.cd-=dt;
+        if (r.cd<=0){ r.cd=RAIDER_ATTACK_CD; damagePlayer(RAIDER_DMG); }
+      }
     }
 
-    // tanam otomatis: berdiri diam di tanah kosong dengan bibit di tas
-    const here=tileAt(Math.floor(S.px),Math.floor(S.py));
-    if (here&&here.type==="dirt"&&S.bibit>0&&mag<=0.12){
-      S.plantTimer+=dt;
-      if (S.plantTimer>0.16){ S.plantTimer=0; maybePlant(); }
-    } else S.plantTimer=0;
-
+    // tumbuh
     for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
       const t=S.tiles[y][x];
       if (t.type==="sapling"){
@@ -441,24 +573,7 @@
       } else if (t.type==="palm"&&t.grow<GROW_FULL) t.grow+=dt;
     }
 
-    if (S.demo){
-      S.demo.timer-=dt;
-      if (S.demo.timer<=0){
-        S.demo.timer=45;
-        S.demo.demand=Math.round(S.demo.demand*1.15);
-        let extra=0,tries=0;
-        while (extra<2&&tries<120){
-          tries++;
-          const x=1+Math.floor(Math.random()*(COLS-2)), y=1+Math.floor(Math.random()*(ROWS-2));
-          const t=tileAt(x,y);
-          if (t&&t.type==="dirt"&&!t.blocked){ t.blocked=1; S.demo.blockers.push([x,y]); extra++; }
-        }
-        toast("Tuntutan naik jadi "+rp(S.demo.demand));
-        paintDemo(); paintHud();
-      }
-    }
-
-    // sapi: jalan-jalan & hasilkan uang
+    // sapi
     for (const c of S.cows){
       c.t+=dt; c.phase+=dt*2;
       if (Math.random()<dt*0.9) c.dir+=(Math.random()-.5)*1.8;
@@ -468,14 +583,14 @@
       else c.dir+=2.2;
       if (c.t>=COW_PERIOD){
         c.t=0; S.money+=COW_INCOME;
-        floatText(c.x-0.5, c.y-0.5, "+"+COW_INCOME, "#ffe9a8");
-        beep(700,.05,"triangle",.03); paintHud();
+        floatText(c.x-0.5,c.y-0.5,"+"+COW_INCOME,"#ffe9a8");
+        paintHud();
       }
     }
 
     for (let i=parts.length-1;i>=0;i--){
       const p=parts[i];
-      p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt; p.vz-=170*dt; p.life-=dt;
+      p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt; p.vz-=180*dt; p.rot+=dt*6; p.life-=dt;
       if (p.life<=0) parts.splice(i,1);
     }
     for (let i=floats.length-1;i>=0;i--){
@@ -484,38 +599,141 @@
     }
   }
 
-  // ================= menggambar =================
+  // ================= gambar =================
   function diamond(x,y,color){
     const p=toScreen(x,y), w=TW/2*cam.scale, h=TH/2*cam.scale;
     ctx.beginPath();
-    ctx.moveTo(p.x, p.y-h); ctx.lineTo(p.x+w, p.y);
-    ctx.lineTo(p.x, p.y+h); ctx.lineTo(p.x-w, p.y);
+    ctx.moveTo(p.x,p.y-h); ctx.lineTo(p.x+w,p.y);
+    ctx.lineTo(p.x,p.y+h); ctx.lineTo(p.x-w,p.y);
     ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+    return p;
   }
-  function shadow(x,y,rw,rh,alpha=0.18){
+  function shadow(x,y,rw,rh,alpha=0.2){
     const p=toScreen(x,y);
-    ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle="#0b2412";
-    ctx.beginPath(); ctx.ellipse(p.x, p.y+2*cam.scale, rw*cam.scale, rh*cam.scale, 0, 0, TAU);
+    ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle="#0a2012";
+    ctx.beginPath(); ctx.ellipse(p.x,p.y+2*cam.scale,rw*cam.scale,rh*cam.scale,0,0,TAU);
     ctx.fill(); ctx.restore();
+  }
+
+  function drawGround(){
+    const s=cam.scale;
+
+    // hutan pinggiran (di luar peta) supaya tepi tidak terlihat kosong
+    for (let y=-9;y<ROWS+9;y++) for (let x=-9;x<COLS+9;x++){
+      if (x>=0&&y>=0&&x<COLS&&y<ROWS) continue;
+      const p=toScreen(x,y);
+      if (p.x<-TW*s||p.x>cam.cssW+TW*s||p.y<-TH*s||p.y>cam.cssH+TH*s) continue;
+      diamond(x,y, "#2a5f36");
+      const h=hash(x+997,y+313);
+      if (h%2===0){
+        ctx.globalAlpha=.55; ctx.fillStyle="#1d4227";
+        ctx.beginPath(); ctx.arc(p.x,p.y-14*s,10*s,0,TAU); ctx.fill();
+        ctx.globalAlpha=.4; ctx.fillStyle="#163a1f";
+        ctx.beginPath(); ctx.arc(p.x+5*s,p.y-19*s,7.5*s,0,TAU); ctx.fill();
+        ctx.globalAlpha=.3; ctx.fillStyle="#12301a";
+        ctx.beginPath(); ctx.arc(p.x-6*s,p.y-11*s,6*s,0,TAU); ctx.fill();
+        ctx.globalAlpha=1;
+      }
+    }
+
+    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
+      const t=S.tiles[y][x], p=toScreen(x,y);
+      if (p.x<-TW*s||p.x>cam.cssW+TW*s||p.y<-TH*s||p.y>cam.cssH+TH*s) continue;
+      const alt=(x+y)%2;
+      let col;
+      if (t.type==="tree") col = alt?"#63c268":"#5ab85f";
+      else if (t.type==="wheat") col = alt?"#e8bd44":"#dfb136";
+      else if (t.type==="water") col = alt?"#4fb0e3":"#47a3d6";
+      else if (t.type==="dirt") col = alt?"#b98f63":"#ad855b";
+      else col = alt?"#5cbb61":"#55b158";
+      diamond(x,y,col);
+
+      const h=hash(x,y);
+      if (t.type==="grass"&&h%5===0){
+        ctx.save(); ctx.globalAlpha=.5; ctx.strokeStyle="#3f9350"; ctx.lineWidth=1.4*s;
+        for (let i=0;i<3;i++){
+          const ax=p.x+((h>>(i*3))%14-7)*s*0.6, ay=p.y+((h>>(i*2))%8-4)*s*0.4;
+          ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax+1*s,ay-5*s); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      if (t.type==="wheat"){
+        ctx.save(); ctx.globalAlpha=.65; ctx.strokeStyle="#b8860b"; ctx.lineWidth=1.4*s;
+        for (let i=0;i<4;i++){
+          const ax=p.x+((x*17+i*9+y*7)%18-9)*s*0.5, ay=p.y+((y*13+i*6+x*5)%10-5)*s*0.35;
+          ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax+1.2*s,ay-6*s); ctx.stroke();
+          ctx.fillStyle="#f7dc7a"; ctx.beginPath(); ctx.arc(ax+1.2*s,ay-7*s,1.5*s,0,TAU); ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (t.type==="water"){
+        ctx.save(); ctx.globalAlpha=.28; ctx.strokeStyle="#c8f0ff"; ctx.lineWidth=1.2*s;
+        for (let i=0;i<2;i++){
+          const off=Math.sin(S.t*1.6+x*0.7+y*0.4+i*1.7)*4*s;
+          ctx.beginPath(); ctx.moveTo(p.x-7*s,p.y-2*s+off);
+          ctx.quadraticCurveTo(p.x,p.y-5*s+off,p.x+7*s,p.y-2*s+off); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      if (t.type==="dirt"){
+        ctx.save(); ctx.globalAlpha=.16; ctx.fillStyle="#6b4a2f";
+        for (let i=0;i<3;i++){
+          const rx=(hash(x+i,y)%12-6)*s*0.55, ry=(hash(x,y+i)%8-4)*s*0.35;
+          ctx.beginPath(); ctx.ellipse(p.x+rx,p.y+ry,3.5*s,2*s,0,0,TAU); ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+    // dekor padang: semak & batu
+    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
+      const t=S.tiles[y][x];
+      if (t.type!=="grass") continue;
+      const h=hash(x,y);
+      if (h%9!==0) continue;
+      const p=toScreen(x+.5,y+.5);
+      if (h%2===0){
+        ctx.fillStyle="#3f9350";
+        ctx.beginPath(); ctx.arc(p.x,p.y-3*s,5.5*s,0,TAU); ctx.fill();
+        ctx.fillStyle="#4fae60";
+        ctx.beginPath(); ctx.arc(p.x-2*s,p.y-6*s,4*s,0,TAU); ctx.fill();
+      } else {
+        ctx.fillStyle="#9fae9d";
+        ctx.beginPath(); ctx.ellipse(p.x,p.y-1*s,5*s,3.4*s,0,0,TAU); ctx.fill();
+        ctx.fillStyle="#c0ccbd";
+        ctx.beginPath(); ctx.ellipse(p.x-1.5*s,p.y-3*s,2.4*s,1.5*s,0,0,TAU); ctx.fill();
+      }
+    }
   }
 
   function drawTree(x,y,t){
     const p=toScreen(x,y), s=cam.scale;
-    const shake=(t.hp<2)?Math.sin(S.t*30+x)*2.2*s:0;
-    shadow(x,y,22,10,0.20);
-    ctx.fillStyle="#8a5a34";
-    ctx.beginPath(); ctx.roundRect(p.x-3.5*s+shake, p.y-34*s, 7*s, 32*s, 3*s); ctx.fill();
-    const blobs=[[0,-45,17,"#2f7d4a"],[-8,-53,13,"#3f9c5b"],[7,-54,12,"#4bb169"]];
-    for (const [dx,dy,r,c] of blobs){
-      ctx.fillStyle=c;
-      ctx.beginPath(); ctx.arc(p.x+dx*s+shake, p.y+dy*s, r*s, 0, TAU); ctx.fill();
+    const shook=(t.hp<2)?Math.sin(S.t*30+x)*2.4*s:0;
+    const sway=Math.sin(S.t*1.4+x*0.9+y*0.6)*1.2*s;
+    const v=hash(x,y)%100;
+    const vs=0.88+(v%21)/100;
+    shadow(x,y,19*vs,9*vs,0.22);
+    // batang
+    const grd=ctx.createLinearGradient(p.x-4*s,0,p.x+4*s,0);
+    grd.addColorStop(0,"#7a4c2a"); grd.addColorStop(.6,"#96603a"); grd.addColorStop(1,"#6b3f22");
+    ctx.fillStyle=grd;
+    ctx.beginPath(); ctx.roundRect(p.x-3.5*s+shook,p.y-34*vs*s,7*s,32*vs*s,3*s); ctx.fill();
+    // kanopi 3 lapis
+    const bx=p.x+shook+sway, by=p.y;
+    const pal = (v%3===0) ? ["#2a7241","#378f52","#45a562"]
+              : (v%3===1) ? ["#2e7d46","#3d9b58","#4bb169"]
+                          : ["#316f45","#3f9459","#52ab6c"];
+    const blobs=[[0,-45,17],[-8,-53,13],[7,-54,12]];
+    for (let i=0;i<3;i++){
+      const [dx,dy,r]=blobs[i];
+      ctx.fillStyle=pal[i];
+      ctx.beginPath(); ctx.arc(bx+dx*vs*s, by+dy*vs*s, r*vs*s, 0, TAU); ctx.fill();
     }
-    ctx.globalAlpha=.30; ctx.fillStyle="#c9f7cf";
-    ctx.beginPath(); ctx.arc(p.x-5*s+shake, p.y-56*s, 5*s, 0, TAU); ctx.fill();
+    ctx.globalAlpha=.32; ctx.fillStyle="#c8f7cf";
+    ctx.beginPath(); ctx.arc(bx-4*vs*s, by-56*vs*s, 5.5*vs*s, 0, TAU); ctx.fill();
     ctx.globalAlpha=1;
     if (t.hp<2){
       ctx.strokeStyle="rgba(35,22,10,.55)"; ctx.lineWidth=2*s;
-      ctx.beginPath(); ctx.moveTo(p.x-3*s+shake,p.y-34*s); ctx.lineTo(p.x+4*s+shake,p.y-12*s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x-2.5*s+shook,p.y-34*vs*s); ctx.lineTo(p.x+3.5*s+shook,p.y-12*vs*s); ctx.stroke();
     }
   }
 
@@ -523,15 +741,16 @@
     const p=toScreen(x,y), s=cam.scale;
     const grown=clamp(t.grow/GROW_FULL,0,1);
     const hgt=16+42*grown;
-    shadow(x,y,18,8,0.20);
+    const sway=Math.sin(S.t*1.5+x)*2*s*grown;
+    shadow(x,y,16,7,0.2);
     ctx.strokeStyle="#9a7448"; ctx.lineWidth=Math.max(2.5,6*grown*s); ctx.lineCap="round";
     ctx.beginPath(); ctx.moveTo(p.x,p.y);
-    ctx.quadraticCurveTo(p.x+4*s, p.y-hgt*0.6*s, p.x+2*s, p.y-hgt*s); ctx.stroke();
-    const cx=p.x+2*s, cy=p.y-hgt*s;
-    const fronds= grown>0.55?7:4;
+    ctx.quadraticCurveTo(p.x+4*s,p.y-hgt*0.6*s,p.x+2*s+sway,p.y-hgt*s); ctx.stroke();
+    const cx=p.x+2*s+sway, cy=p.y-hgt*s;
+    const fronds=grown>0.55?7:4;
     for (let i=0;i<fronds;i++){
       const a=(-Math.PI*0.95)+i*(Math.PI*1.9/(fronds-1));
-      ctx.strokeStyle= grown>=1?"#2f8a4d":"#59a86b";
+      ctx.strokeStyle=grown>=1?"#2f8a4d":"#59a86b";
       ctx.lineWidth=Math.max(2,5*grown*s);
       ctx.beginPath(); ctx.moveTo(cx,cy);
       ctx.quadraticCurveTo(cx+Math.cos(a)*16*s, cy+Math.sin(a)*12*s,
@@ -540,116 +759,151 @@
     }
     if (grown>=1){
       ctx.fillStyle="#ffcf4a";
-      ctx.beginPath(); ctx.arc(cx+3*s, cy+7*s, 4*s, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx-5*s, cy+9*s, 3.6*s, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+3*s,cy+7*s,4*s,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx-5*s,cy+9*s,3.6*s,0,TAU); ctx.fill();
       const bob=Math.sin(S.t*3)*3*s;
-      ctx.fillStyle="rgba(255,255,255,.92)"; ctx.textAlign="center";
+      ctx.fillStyle="rgba(255,255,255,.9)"; ctx.textAlign="center";
       ctx.font=`bold ${11*s}px -apple-system,sans-serif`;
-      ctx.fillText("siap panen", cx, cy-24*s+bob);
+      ctx.fillText("panen",cx,cy-24*s+bob);
     }
   }
 
   const BARN={x:8,y:8};
   function drawBarn(x,y){
     const p=toScreen(x,y), s=cam.scale;
-    shadow(x,y,34,14,0.22);
+    shadow(x,y,32,13,0.24);
     ctx.fillStyle="#c0452f";
-    ctx.beginPath(); ctx.roundRect(p.x-26*s, p.y-46*s, 52*s, 40*s, 4*s); ctx.fill();
-    ctx.fillStyle="#a83a26";
-    ctx.fillRect(p.x-26*s, p.y-20*s, 52*s, 14*s);
+    ctx.beginPath(); ctx.roundRect(p.x-26*s,p.y-46*s,52*s,40*s,4*s); ctx.fill();
+    ctx.fillStyle="#a83a26"; ctx.fillRect(p.x-26*s,p.y-20*s,52*s,14*s);
     ctx.fillStyle="#7a3a2a";
     ctx.beginPath();
-    ctx.moveTo(p.x-32*s, p.y-46*s); ctx.lineTo(p.x, p.y-72*s);
-    ctx.lineTo(p.x+32*s, p.y-46*s); ctx.closePath(); ctx.fill();
+    ctx.moveTo(p.x-32*s,p.y-46*s); ctx.lineTo(p.x,p.y-72*s);
+    ctx.lineTo(p.x+32*s,p.y-46*s); ctx.closePath(); ctx.fill();
     ctx.fillStyle="#f3e6d2";
-    ctx.beginPath(); ctx.roundRect(p.x-10*s, p.y-28*s, 20*s, 22*s, 3*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(p.x-10*s,p.y-28*s,20*s,22*s,3*s); ctx.fill();
     ctx.strokeStyle="#c0452f"; ctx.lineWidth=2*s;
     ctx.beginPath(); ctx.moveTo(p.x-10*s,p.y-28*s); ctx.lineTo(p.x+10*s,p.y-6*s); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(p.x+10*s,p.y-28*s); ctx.lineTo(p.x-10*s,p.y-6*s); ctx.stroke();
   }
 
-  function drawCow(x,y){
+  function drawCow(x,y,c){
     const p=toScreen(x,y), s=cam.scale, bob=Math.sin(S.t*3+x*2)*1.5*s;
-    shadow(x,y,20,9,0.20);
+    shadow(x,y,20,9,0.2);
     ctx.fillStyle="#f9f6ef";
-    ctx.beginPath(); ctx.ellipse(p.x, p.y-20*s+bob, 17*s, 11*s, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x,p.y-20*s+bob,17*s,11*s,0,0,TAU); ctx.fill();
     ctx.fillStyle="#3b3b3b";
-    ctx.beginPath(); ctx.arc(p.x-6*s, p.y-23*s+bob, 4.2*s, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x+6*s, p.y-17*s+bob, 3.2*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x-6*s,p.y-23*s+bob,4.2*s,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+6*s,p.y-17*s+bob,3.2*s,0,TAU); ctx.fill();
     ctx.fillStyle="#fdfbf6";
-    ctx.beginPath(); ctx.arc(p.x+13*s, p.y-26*s+bob, 8*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+13*s,p.y-26*s+bob,8*s,0,TAU); ctx.fill();
     ctx.fillStyle="#e6d9c6";
-    ctx.beginPath(); ctx.ellipse(p.x+8.5*s, p.y-31*s+bob, 3*s, 2*s, -0.5, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(p.x+17.5*s, p.y-31*s+bob, 3*s, 2*s, 0.5, 0, TAU); ctx.fill();
-    ctx.strokeStyle="#d8c9a8"; ctx.lineWidth=2*s; ctx.lineCap="round";
-    ctx.beginPath(); ctx.moveTo(p.x+11*s,p.y-33*s+bob); ctx.lineTo(p.x+9*s,p.y-37*s+bob); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(p.x+16*s,p.y-33*s+bob); ctx.lineTo(p.x+18.5*s,p.y-37*s+bob); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(p.x+8.5*s,p.y-31*s+bob,3*s,2*s,-0.5,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x+17.5*s,p.y-31*s+bob,3*s,2*s,0.5,0,TAU); ctx.fill();
     ctx.fillStyle="#2b2b2b";
-    ctx.beginPath(); ctx.arc(p.x+15*s, p.y-27.5*s+bob, 1.5*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+15*s,p.y-27.5*s+bob,1.5*s,0,TAU); ctx.fill();
     ctx.fillStyle="#f0b9b0";
-    ctx.beginPath(); ctx.ellipse(p.x+20*s, p.y-23*s+bob, 3.4*s, 2.6*s, 0, 0, TAU); ctx.fill();
-    ctx.strokeStyle="#efe9df"; ctx.lineWidth=3*s;
-    [[-9],[-3],[5],[11]].forEach(([dx],i)=>{
-      const off=Math.sin(S.t*6+i)*1.6*s;
-      ctx.beginPath(); ctx.moveTo(p.x+dx*s, p.y-11*s+bob);
-      ctx.lineTo(p.x+dx*s+off, p.y-1*s+bob); ctx.stroke();
-    });
-    ctx.beginPath(); ctx.moveTo(p.x-16*s,p.y-22*s+bob);
-    ctx.quadraticCurveTo(p.x-22*s,p.y-16*s+bob,p.x-20*s,p.y-12*s+bob); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(p.x+20*s,p.y-23*s+bob,3.4*s,2.6*s,0,0,TAU); ctx.fill();
+    ctx.strokeStyle="#efe9df"; ctx.lineWidth=3*s; ctx.lineCap="round";
+    for (let i=0;i<4;i++){
+      const dx=[-9,-3,5,11][i], off=Math.sin(S.t*6+i)*1.6*s;
+      ctx.beginPath(); ctx.moveTo(p.x+dx*s,p.y-11*s+bob);
+      ctx.lineTo(p.x+dx*s+off,p.y-1*s+bob); ctx.stroke();
+    }
   }
 
-  function drawVillager(x,y){
-    const p=toScreen(x,y), s=cam.scale, bob=Math.sin(S.t*4+x)*2*s;
-    shadow(x,y,14,7,0.22);
-    ctx.fillStyle="#e07a5f";
-    ctx.beginPath(); ctx.roundRect(p.x-7*s, p.y-30*s+bob, 14*s, 22*s, 6*s); ctx.fill();
-    ctx.fillStyle="#f7d9a8";
-    ctx.beginPath(); ctx.arc(p.x, p.y-34*s+bob, 8*s, 0, TAU); ctx.fill();
-    ctx.fillStyle="#3b2a1c";
-    ctx.beginPath(); ctx.arc(p.x-3*s, p.y-35*s+bob, 1.6*s, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x+3*s, p.y-35*s+bob, 1.6*s, 0, TAU); ctx.fill();
-    ctx.fillStyle="#fff"; ctx.textAlign="center";
-    ctx.font=`${11*s}px sans-serif`; ctx.fillText("📢", p.x, p.y-46*s+bob);
+  function drawRaider(r){
+    const p=toScreen(r.x,r.y), s=cam.scale;
+    const bob=Math.abs(Math.sin(r.walk))*3*s;
+    const swing=Math.sin(r.walk*2)*0.5;
+    shadow(r.x,r.y,14,6,0.26);
+    // kaki
+    ctx.fillStyle="#3a2b22";
+    ctx.beginPath(); ctx.roundRect(p.x-7*s,p.y-9*s,5.5*s,10*s,2.5*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(p.x+1.5*s,p.y-9*s,5.5*s,10*s,2.5*s); ctx.fill();
+    // badan (kaos merah)
+    const g=ctx.createLinearGradient(p.x-9*s,0,p.x+9*s,0);
+    g.addColorStop(0,r.hurt>0?"#ff9d8a":"#c04a35");
+    g.addColorStop(1,r.hurt>0?"#ffd0c4":"#9c3626");
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.roundRect(p.x-9*s,p.y-28*s+bob,18*s,20*s,6*s); ctx.fill();
+    // tangan + parang
+    ctx.strokeStyle="#e8b98e"; ctx.lineWidth=3.6*s; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(p.x+7*s,p.y-23*s+bob); ctx.lineTo(p.x+13*s,p.y-16*s+bob); ctx.stroke();
+    ctx.save();
+    ctx.translate(p.x+13*s,p.y-16*s+bob); ctx.rotate(-0.5+swing);
+    ctx.strokeStyle="#b9c2c8"; ctx.lineWidth=3.4*s;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(10*s,-9*s); ctx.stroke();
+    ctx.restore();
+    // kepala + ikat kepala
+    ctx.fillStyle="#e8b98e";
+    ctx.beginPath(); ctx.arc(p.x,p.y-35*s+bob,9*s,0,TAU); ctx.fill();
+    ctx.fillStyle="#8c2b1e";
+    ctx.beginPath(); ctx.arc(p.x,p.y-38*s+bob,9.2*s,Math.PI,0); ctx.fill();
+    ctx.fillRect(p.x-9*s,p.y-39*s+bob,18*s,3*s);
+    // mata marah
+    ctx.strokeStyle="#2a1a12"; ctx.lineWidth=1.8*s;
+    ctx.beginPath(); ctx.moveTo(p.x-5*s,p.y-34*s+bob); ctx.lineTo(p.x-1.5*s,p.y-32.5*s+bob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x+5*s,p.y-34*s+bob); ctx.lineTo(p.x+1.5*s,p.y-32.5*s+bob); ctx.stroke();
+    // hp bar kecil
+    if (r.hp<r.maxHp){
+      const w=20*s, ratio=clamp(r.hp/r.maxHp,0,1);
+      ctx.fillStyle="rgba(0,0,0,.45)";
+      ctx.beginPath(); ctx.roundRect(p.x-w/2,p.y-50*s,w,3.4*s,2*s); ctx.fill();
+      ctx.fillStyle="#ff7a63";
+      ctx.beginPath(); ctx.roundRect(p.x-w/2,p.y-50*s,w*ratio,3.4*s,2*s); ctx.fill();
+    }
   }
 
   function drawPlayer(){
     const p=toScreen(S.px,S.py), s=cam.scale*1.14;
-    shadow(S.px,S.py,16,7,0.24);
-    const bob=Math.abs(Math.sin(S.walk))*3*s;
+    shadow(S.px,S.py,16,7,0.26);
+    const bob=Math.abs(Math.sin(S.walk))*3.2*s;
     const sw=Math.sin(S.swing*Math.PI);
     const flip=S.facing==="left"?-1:1;
+    const blink=(S.invuln>0&&Math.floor(S.t*12)%2===0)?0.45:1;
 
+    ctx.save(); ctx.globalAlpha=blink;
+
+    // kaki
     ctx.fillStyle="#2b3b52";
-    ctx.beginPath(); ctx.roundRect(p.x-8*s, p.y-10*s+bob, 6*s, 12*s, 3*s); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(p.x+2*s, p.y-10*s+bob, 6*s, 12*s, 3*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(p.x-8*s,p.y-10*s+bob,6*s,12*s,3*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(p.x+2*s,p.y-10*s+bob,6*s,12*s,3*s); ctx.fill();
 
-    ctx.save();
-    ctx.shadowColor="rgba(255,255,255,.95)"; ctx.shadowBlur=10*s;
-    ctx.fillStyle="#f2b544";
-    ctx.beginPath(); ctx.roundRect(p.x-10*s, p.y-30*s+bob, 20*s, 22*s, 7*s); ctx.fill();
-    ctx.restore();
+    // badan
+    const g=ctx.createLinearGradient(p.x-10*s,0,p.x+10*s,0);
+    g.addColorStop(0,"#f6c552"); g.addColorStop(1,"#e2a233");
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.roundRect(p.x-10*s,p.y-30*s+bob,20*s,22*s,7*s); ctx.fill();
+    // sabuk
+    ctx.fillStyle="#6b4a2f";
+    ctx.fillRect(p.x-10*s,p.y-12*s+bob,20*s,3*s);
 
+    // kepala
     ctx.fillStyle="#f7d9a8";
-    ctx.beginPath(); ctx.arc(p.x, p.y-38*s+bob, 10*s, 0, TAU); ctx.fill();
-
+    ctx.beginPath(); ctx.arc(p.x,p.y-38*s+bob,10*s,0,TAU); ctx.fill();
+    // rambut
+    ctx.fillStyle="#2f241c";
+    ctx.beginPath(); ctx.arc(p.x,p.y-40*s+bob,10.2*s,Math.PI*0.95,Math.PI*2.05); ctx.fill();
+    // topi
     ctx.fillStyle="#2f7d4f";
-    ctx.beginPath(); ctx.arc(p.x, p.y-41*s+bob, 10.5*s, Math.PI, 0); ctx.fill();
-    ctx.fillRect(p.x-13*s, p.y-41*s+bob, 26*s, 3.5*s);
+    ctx.beginPath(); ctx.arc(p.x,p.y-42*s+bob,10.6*s,Math.PI,0); ctx.fill();
+    ctx.fillRect(p.x-13*s,p.y-42*s+bob,26*s,3.5*s);
 
+    // mata
     ctx.fillStyle="#243018";
     const ex=S.facing==="left"?-3:S.facing==="right"?3:0;
-    ctx.beginPath(); ctx.arc(p.x-3.5*s+ex*s, p.y-37*s+bob, 1.7*s, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x+3.5*s+ex*s, p.y-37*s+bob, 1.7*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x-3.6*s+ex*s,p.y-37*s+bob,1.7*s,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+3.6*s+ex*s,p.y-37*s+bob,1.7*s,0,TAU); ctx.fill();
 
-    // tangan + kapak mengayun
+    // tangan + kapak
     ctx.save();
-    ctx.translate(p.x+flip*9*s, p.y-24*s+bob);
-    ctx.rotate((-0.7+sw*1.9)*flip);
+    ctx.translate(p.x+flip*9*s,p.y-24*s+bob);
+    ctx.rotate((-0.7+sw*2.0)*flip);
     ctx.strokeStyle="#f7d9a8"; ctx.lineWidth=4*s; ctx.lineCap="round";
     ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(9*s*flip,4*s); ctx.stroke();
     ctx.strokeStyle="#8a5a34"; ctx.lineWidth=4*s;
     ctx.beginPath(); ctx.moveTo(6*s*flip,2*s); ctx.lineTo(16*s*flip,-10*s); ctx.stroke();
-    ctx.fillStyle="#cfd8de";
+    ctx.fillStyle="#d7e0e6";
     ctx.beginPath();
     ctx.moveTo(13*s*flip,-12*s); ctx.lineTo(22*s*flip,-16*s);
     ctx.lineTo(23*s*flip,-9*s); ctx.lineTo(14*s*flip,-6*s); ctx.closePath(); ctx.fill();
@@ -657,73 +911,19 @@
 
     if (S.tool!=="kapak"){
       ctx.textAlign="center"; ctx.font=`${13*s}px sans-serif`;
-      ctx.fillText(TOOLS[S.tool].icon, p.x, p.y-54*s+bob);
+      ctx.fillText(TOOLS[S.tool].icon,p.x,p.y-56*s+bob);
     }
-  }
-
-  function drawGround(){
-    const s=cam.scale;
-    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
-      const t=S.tiles[y][x];
-      const p=toScreen(x,y);
-      if (p.x<-TW*s || p.x>cam.cssW+TW*s || p.y<-TH*s || p.y>cam.cssH+TH*s) continue;
-      const green=(x+y)%2?"#5cb85f":"#55ae59";
-      const col = t.type==="tree" ? green
-                : t.type==="wheat" ? ((x+y)%2?"#e3b53c":"#dcac31")
-                : t.type==="water" ? ((x+y)%2?"#49a6da":"#439dd0")
-                : t.type==="dirt" ? ((x+y)%2?"#b08860":"#a98057")
-                : green;
-      diamond(x,y, col);
-      if (t.type==="wheat"){
-        ctx.save(); ctx.globalAlpha=.55; ctx.strokeStyle="#c48f22"; ctx.lineWidth=1.6*s;
-        for (let i=0;i<5;i++){
-          const ax=p.x+((x*13+i*7+y*5)%16-8)*s*0.55, ay=p.y+((y*11+i*5+x*3)%10-5)*s*0.35;
-          ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax+1.5*s,ay-6.5*s); ctx.stroke();
-          ctx.beginPath(); ctx.arc(ax+1.5*s, ay-7.5*s, 1.5*s, 0, TAU);
-          ctx.fillStyle="#f6d268"; ctx.fill();
-        }
-        ctx.restore();
-      }
-      if (t.type==="dirt"){
-        ctx.save(); ctx.globalAlpha=.15; ctx.fillStyle="#6b4a2f";
-        for (let i=0;i<3;i++){
-          const rx=(x*7+i*11+y*3)%10-5, ry=(y*5+i*7+x*2)%6-3;
-          ctx.beginPath(); ctx.ellipse(p.x+rx*s*.55, p.y+ry*s*.32, 4*s, 2*s, 0, 0, TAU); ctx.fill();
-        }
-        ctx.restore();
-      }
-      if (t.blocked){
-        ctx.save(); ctx.globalAlpha=.45; diamond(x,y,"#e0785f"); ctx.restore();
-      }
-    }
-    // semak & batu dekoratif di padang
-    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
-      const t=S.tiles[y][x];
-      if (t.type!=="grass") continue;
-      const h=(x*73856093 ^ y*19349663) >>> 0;
-      if (h % 7 !== 0) continue;
-      const p=toScreen(x+0.5,y+0.5);
-      if (h % 2 === 0){
-        ctx.fillStyle="#3f8f4e";
-        ctx.beginPath(); ctx.arc(p.x, p.y-3*s, 5.5*s, 0, TAU); ctx.fill();
-        ctx.fillStyle="#4aa05a";
-        ctx.beginPath(); ctx.arc(p.x-2*s, p.y-6*s, 4*s, 0, TAU); ctx.fill();
-      } else {
-        ctx.fillStyle="#9aa79a";
-        ctx.beginPath(); ctx.ellipse(p.x, p.y-1*s, 5*s, 3.5*s, 0, 0, TAU); ctx.fill();
-        ctx.fillStyle="#b9c4b8";
-        ctx.beginPath(); ctx.ellipse(p.x-1.5*s, p.y-3*s, 2.5*s, 1.6*s, 0, 0, TAU); ctx.fill();
-      }
-    }
+    ctx.restore();
   }
 
   function render(){
     resize();
     ctx.setTransform(cam.dpr,0,0,cam.dpr,0,0);
     ctx.clearRect(0,0,cam.cssW,cam.cssH);
-    const g=ctx.createLinearGradient(0,0,0,cam.cssH);
-    g.addColorStop(0,"#7ec97f"); g.addColorStop(1,"#3f8f4e");
-    ctx.fillStyle=g; ctx.fillRect(0,0,cam.cssW,cam.cssH);
+
+    const sky=ctx.createLinearGradient(0,0,0,cam.cssH);
+    sky.addColorStop(0,"#8fd48f"); sky.addColorStop(.55,"#5fb863"); sky.addColorStop(1,"#3f8f4e");
+    ctx.fillStyle=sky; ctx.fillRect(0,0,cam.cssW,cam.cssH);
 
     drawGround();
 
@@ -732,44 +932,62 @@
       const t=S.tiles[y][x];
       if (t.type==="tree"||t.type==="palm"||t.type==="sapling") objs.push({d:x+y,x,y,t});
     }
-    objs.push({d:BARN.x+BARN.y, x:BARN.x, y:BARN.y, barn:true});
-    for (const c of S.cows) objs.push({d:c.x+c.y, x:c.x, y:c.y, cow:true});
-    if (S.demo) objs.push({d:S.demo.x+S.demo.y, x:S.demo.x, y:S.demo.y, villager:true});
-    objs.push({d:S.px+S.py, player:true});
+    objs.push({d:BARN.x+BARN.y,x:BARN.x,y:BARN.y,barn:true});
+    for (const c of S.cows) objs.push({d:c.x+c.y,x:c.x,y:c.y,cow:c});
+    for (const r of S.raiders) objs.push({d:r.x+r.y,x:r.x,y:r.y,raider:r});
+    if (!S.dead) objs.push({d:S.px+S.py,player:true});
     objs.sort((a,b)=>a.d-b.d);
 
     for (const o of objs){
       if (o.player) drawPlayer();
+      else if (o.raider) drawRaider(o.raider);
+      else if (o.cow) drawCow(o.x,o.y,o.cow);
       else if (o.barn) drawBarn(o.x,o.y);
-      else if (o.cow) drawCow(o.x,o.y);
-      else if (o.villager) drawVillager(o.x,o.y);
       else if (o.t.type==="tree") drawTree(o.x,o.y,o.t);
       else drawPalm(o.x,o.y,o.t);
     }
 
+    // partikel
     for (const p of parts){
       const sp=toScreen(p.x,p.y), s=cam.scale;
-      ctx.globalAlpha=clamp(p.life/0.65,0,1);
+      ctx.globalAlpha=clamp(p.life/0.6,0,1);
       ctx.fillStyle=p.color;
-      ctx.fillRect(sp.x-2*s, sp.y-p.z*0.6*s, 4*s, 4*s);
+      ctx.save(); ctx.translate(sp.x,sp.y-p.z*0.6*s); ctx.rotate(p.rot);
+      ctx.fillRect(-2*s,-2*s,4*s,4*s); ctx.restore();
     }
     ctx.globalAlpha=1;
 
+    // teks melayang
     ctx.textAlign="center";
     for (const f of floats){
       const sp=toScreen(f.x,f.y), s=cam.scale;
       ctx.globalAlpha=clamp(f.life/1.1,0,1);
       ctx.font=`bold ${14*s}px -apple-system,sans-serif`;
-      ctx.lineWidth=3*s; ctx.strokeStyle="rgba(10,30,15,.65)";
-      ctx.strokeText(f.text, sp.x, sp.y-f.z*s);
-      ctx.fillStyle=f.color; ctx.fillText(f.text, sp.x, sp.y-f.z*s);
+      ctx.lineWidth=3*s; ctx.strokeStyle="rgba(8,26,14,.7)";
+      ctx.strokeText(f.text,sp.x,sp.y-f.z*s);
+      ctx.fillStyle=f.color; ctx.fillText(f.text,sp.x,sp.y-f.z*s);
     }
     ctx.globalAlpha=1;
+
+    // kilatan merah saat kena serang
+    if (S.hurtFlash>0){
+      const grd=ctx.createRadialGradient(cam.cssW/2,cam.cssH/2,cam.cssH*0.2,
+                                         cam.cssW/2,cam.cssH/2,cam.cssH*0.75);
+      grd.addColorStop(0,"rgba(200,30,20,0)");
+      grd.addColorStop(1,`rgba(200,30,20,${0.45*S.hurtFlash})`);
+      ctx.fillStyle=grd; ctx.fillRect(0,0,cam.cssW,cam.cssH);
+    }
+    // vignette
+    const vg=ctx.createRadialGradient(cam.cssW/2,cam.cssH*0.45,cam.cssH*0.35,
+                                      cam.cssW/2,cam.cssH*0.5,cam.cssH*0.95);
+    vg.addColorStop(0,"rgba(0,0,0,0)");
+    vg.addColorStop(1,"rgba(0,20,10,.26)");
+    ctx.fillStyle=vg; ctx.fillRect(0,0,cam.cssW,cam.cssH);
   }
 
   // ================= analog =================
-  const stick={ active:false, id:null, bx:0, by:0, x:0, y:0, r:56 };
-  function stickDiff(){ return { dx: stick.x-stick.bx, dy: stick.y-stick.by }; }
+  const stick={active:false,id:null,bx:0,by:0,x:0,y:0,r:56};
+  function stickDiff(){ return { dx:stick.x-stick.bx, dy:stick.y-stick.by }; }
   function moveStick(e){
     const r=cv.getBoundingClientRect();
     let dx=(e.clientX-r.left)-stick.bx, dy=(e.clientY-r.top)-stick.by;
@@ -778,8 +996,8 @@
     stick.x=stick.bx+dx; stick.y=stick.by+dy;
     S.vx=dx/stick.r; S.vy=dy/stick.r;
   }
-  cv.addEventListener("pointerdown", e=>{
-    if (stick.active) return;
+  cv.addEventListener("pointerdown",e=>{
+    if (stick.active||S.dead) return;
     const r=cv.getBoundingClientRect();
     stick.active=true; stick.id=e.pointerId;
     stick.bx=e.clientX-r.left; stick.by=e.clientY-r.top;
@@ -787,17 +1005,17 @@
     stick.r=Math.max(46,Math.min(74,Math.min(r.width,r.height)*0.16));
     try{ cv.setPointerCapture(e.pointerId); }catch{}
     e.preventDefault();
-  }, {passive:false});
-  cv.addEventListener("pointermove", e=>{
+  },{passive:false});
+  cv.addEventListener("pointermove",e=>{
     if (!stick.active||e.pointerId!==stick.id) return;
     moveStick(e); e.preventDefault();
-  }, {passive:false});
+  },{passive:false});
   function endStick(e){
     if (!stick.active||(e&&e.pointerId!==stick.id)) return;
     stick.active=false; stick.id=null; S.vx=0; S.vy=0;
   }
   ["pointerup","pointercancel","pointerleave"].forEach(ev=>cv.addEventListener(ev,endStick));
-  cv.addEventListener("contextmenu", e=>e.preventDefault());
+  cv.addEventListener("contextmenu",e=>e.preventDefault());
 
   const keys=new Set();
   addEventListener("keydown",e=>{
@@ -814,34 +1032,35 @@
     if (keys.has("s")||keys.has("arrowdown")) y+=1;
     S.vx=x; S.vy=y;
   }
-
   function drawStick(){
     if (!stick.active) return;
     ctx.save();
-    ctx.globalAlpha=.28; ctx.fillStyle="#0d2416";
+    ctx.globalAlpha=.26; ctx.fillStyle="#0d2416";
     ctx.beginPath(); ctx.arc(stick.bx,stick.by,stick.r,0,TAU); ctx.fill();
     ctx.globalAlpha=.5; ctx.strokeStyle="#eafff0"; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(stick.bx,stick.by,stick.r,0,TAU); ctx.stroke();
     const d=stickDiff();
-    ctx.globalAlpha=.9; ctx.fillStyle="#f4fff6";
-    ctx.beginPath(); ctx.arc(stick.bx+d.dx, stick.by+d.dy, stick.r*0.42, 0, TAU); ctx.fill();
+    ctx.globalAlpha=.92; ctx.fillStyle="#f4fff6";
+    ctx.beginPath(); ctx.arc(stick.bx+d.dx,stick.by+d.dy,stick.r*0.42,0,TAU); ctx.fill();
     ctx.restore();
   }
 
   // ================= UI =================
   let lastMoney=null;
   function paintHud(){
-    const moneyEl=document.getElementById("ui-money");
-    moneyEl.textContent=Math.round(S.money).toLocaleString("id-ID");
-    if (lastMoney!==null && S.money>lastMoney){
-      const chip=moneyEl.closest(".chip");
-      chip.classList.remove("bump"); void chip.offsetWidth; chip.classList.add("bump");
+    const m=document.getElementById("ui-money");
+    m.textContent=Math.round(S.money).toLocaleString("id-ID");
+    if (lastMoney!==null&&S.money>lastMoney){
+      const chip=m.closest(".chip"); chip.classList.remove("bump"); void chip.offsetWidth; chip.classList.add("bump");
     }
     lastMoney=S.money;
     document.getElementById("ui-chopped").textContent=S.chopped;
     document.getElementById("ui-palms").textContent=S.palms;
-    const cw=document.getElementById("ui-cows"); if (cw) cw.textContent=S.cows.length;
-    document.getElementById("ui-tool").textContent=TOOLS[S.tool].name+(S.bibit?(" · bibit "+S.bibit):"");
+    document.getElementById("ui-cows").textContent=S.cows.length;
+    const hp=Math.max(0,Math.round(S.hp/PLAYER_HP*100));
+    document.getElementById("hpfill").style.width=hp+"%";
+    document.getElementById("wave-label").textContent="Gel. "+S.wave;
+    document.getElementById("vitals").classList.toggle("on", S.hp<PLAYER_HP||S.raiders.length>0);
   }
   let tab="alat";
   function buyTool(id){
@@ -852,27 +1071,8 @@
     toast(t.name+" dibeli"); beep(720,.12,"square",.05);
     paintHud(); renderShop(); save();
   }
-  function buyCow(){
-    if (S.cows.length>=COW_MAX) return toast("Kandang penuh (maks "+COW_MAX+" sapi)");
-    if (S.money<COW_PRICE) return toast("Uang belum cukup");
-    let spot=null;
-    for (let i=0;i<80&&!spot;i++){
-      const x=clamp(Math.floor(BARN.x+(Math.random()-.5)*6),1,COLS-2);
-      const y=clamp(Math.floor(BARN.y+(Math.random()-.5)*6),1,ROWS-2);
-      const t=tileAt(x,y);
-      if (t&&(t.type==="grass"||t.type==="dirt")&&!t.blocked &&
-          !S.cows.some(c=>Math.hypot(c.x-(x+0.5),c.y-(y+0.5))<1.0))
-        spot={x:x+0.5,y:y+0.5};
-    }
-    if (!spot) return toast("Tidak ada tempat kosong untuk sapi");
-    S.money-=COW_PRICE;
-    S.cows.push({x:spot.x,y:spot.y,t:0,dir:Math.random()*TAU,phase:Math.random()*TAU});
-    haptic(12); beep(540,.12,"triangle",.05);
-    toast("Sapi baru masuk kandang 🐄"); paintHud(); renderShop(); save();
-  }
-
   function buyBibit(n){
-    if (!n || n<1) return;
+    if (!n||n<1) return;
     const cost=n*BIBIT_PRICE;
     if (S.money<cost) return toast("Uang belum cukup");
     S.money-=cost; S.bibit+=n; haptic(10);
@@ -901,29 +1101,28 @@
         <div class="item"><div class="ic">🌴</div><div class="b">
         <div class="n">Kebun</div><div class="d">Sawit ditanam ${S.palms} · dipanen ${S.harvested}</div></div></div>`;
     } else if (tab==="ternak"){
-      const passive = S.cows.length*COW_INCOME*(60/COW_PERIOD);
+      const passive=S.cows.length*COW_INCOME*(60/COW_PERIOD);
       html=`<div class="item"><div class="ic">🐄</div><div class="b">
         <div class="n">Sapi perah (${S.cows.length}/${COW_MAX})</div>
-        <div class="d">Tiap ${COW_PERIOD} dtk menghasilkan ${rp(COW_INCOME)} otomatis, tanpa ditunggu.</div>
+        <div class="d">Tiap ${COW_PERIOD} dtk menghasilkan ${rp(COW_INCOME)} otomatis.</div>
         <div class="p">${rp(COW_PRICE)} / sapi${S.cows.length?` · pasif ${rp(passive)}/menit`:""}</div></div>
-        <button class="gold" data-cow="1" ${S.money<COW_PRICE||S.cows.length>=COW_MAX?"disabled":""}>Beli</button></div>
-        <div class="item"><div class="ic">🥛</div><div class="b">
-        <div class="n">Total susu terkumpul</div>
-        <div class="d">Sapi jalan sendiri di padang sekitar kamu — uangnya masuk otomatis.</div>
-        <div class="p">${rp(S.cows.length*COW_INCOME)} / putaran</div></div></div>`;
+        <button class="gold" data-cow="1" ${S.money<COW_PRICE||S.cows.length>=COW_MAX?"disabled":""}>Beli</button></div>`;
     } else {
-      html=S.demo?`<div class="item"><div class="ic">📢</div><div class="b">
-        <div class="n">Demo warga</div><div class="d">Menutup ${S.demo.blockers.length} petak · sisa ${Math.ceil(S.demo.timer)} dtk</div>
-        <div class="p">${rp(S.demo.demand)}</div></div>
-        <button class="gold" data-pay="1" ${S.money<S.demo.demand?"disabled":""}>Bayar</button></div>`
-      :`<div class="item"><div class="ic">🤝</div><div class="b">
-        <div class="n">Warga sekitar</div><div class="d">Ganti rugi dibayar ${rp(S.demoPaid)} · demo berikut di ${S.nextDemoAt} pohon</div></div></div>`;
+      html=`<div class="item" style="border-color:#c8563f"><div class="ic">🪓</div><div class="b">
+        <div class="n">Serangan warga</div>
+        <div class="d">Gelombang datang tiap ${RAID_EVERY} pohon. Warga mengejar dan menyerang —
+        lawan dengan ayunan kapakmu (otomatis saat mereka dekat).</div>
+        <div class="p">Gelombang sekarang: ${S.wave} · warga dihajar: ${S.kills}</div></div></div>
+        <div class="item"><div class="ic">❤️</div><div class="b">
+        <div class="n">Nyawa</div><div class="d">HP ${Math.round(S.hp)}/${PLAYER_HP}. Pulih otomatis setelah 5 dtk tanpa diserang.
+        Kalau tumbang: kehilangan 15% uang dan kembali ke kebun.</div></div></div>
+        <div class="item"><div class="ic">🎁</div><div class="b">
+        <div class="n">Hadiah bertahan</div><div class="d">Setiap warga tumbang: ${rp(25)}. Gelombang bersih: bonus ${rp(60)}.</div></div></div>`;
     }
     list.innerHTML=html;
     list.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buyTool(b.dataset.buy));
     list.querySelectorAll("[data-use]").forEach(b=>b.onclick=()=>buyTool(b.dataset.use));
     list.querySelectorAll("[data-bibit]").forEach(b=>b.onclick=()=>buyBibit(+b.dataset.bibit));
-    list.querySelectorAll("[data-pay]").forEach(b=>b.onclick=()=>payDemo());
     list.querySelectorAll("[data-cow]").forEach(b=>b.onclick=()=>buyCow());
   }
   const shopEl=document.getElementById("shop");
@@ -934,40 +1133,37 @@
     document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===t));
     renderShop();
   });
-  document.getElementById("btn-pay").onclick=()=>payDemo();
-  document.getElementById("btn-ignore").onclick=()=>document.getElementById("demo-card").classList.remove("on");
   document.getElementById("btn-mute").onclick=e=>{
     S.muted=!S.muted; e.currentTarget.textContent=S.muted?"🔇":"🔊"; save();
   };
+  document.getElementById("btn-respawn").onclick=()=>respawn();
 
   // ================= loop =================
   let last=performance.now();
   function frame(now){
     const dt=Math.min(0.05,(now-last)/1000); last=now;
     applyKeys();
-    if (!shopEl.classList.contains("open")) update(dt);
-    render();
-    drawStick();
-    if (S.demo) paintDemo();
+    if (!S.dead&&!shopEl.classList.contains("open")) update(dt);
+    render(); drawStick();
     requestAnimationFrame(frame);
   }
 
   // ================= API test =================
   window.NYAWIT = {
     get state(){ return S; },
-    tick(seconds){ const st=0.05; for (let i=0;i<seconds/st;i++) update(st); },
+    tick(sec){ const st=0.05; for (let i=0;i<sec/st;i++) update(st); },
     drive(x,y){ stick.active=true; stick.bx=cam.cssW*0.25; stick.by=cam.cssH*0.72; stick.r=56;
       stick.x=stick.bx+x*stick.r; stick.y=stick.by+y*stick.r; S.vx=x; S.vy=y; },
     release(){ stick.active=false; S.vx=0; S.vy=0; },
-    payDemo, buyTool, buyBibit, save,
-    reset(){ S=newState(); save(); paintHud(); renderShop(); paintDemo(); }
+    buyTool, buyBibit, buyCow, respawn, save,
+    reset(){ S=newState(); save(); paintHud(); renderShop(); }
   };
 
   // ================= boot =================
-  S = load() || newState();
+  S=load()||newState();
   if (S.muted) document.getElementById("btn-mute").textContent="🔇";
-  paintHud(); renderShop(); paintDemo();
-  if (!localStorage.getItem(SAVE_KEY)) toast("Geser analog untuk jalan — dekat pohon otomatis menebang", 3200);
+  paintHud(); renderShop();
+  if (!localStorage.getItem(SAVE_KEY)) toast("Geser analog untuk jalan — dekat pohon otomatis menebang",3000);
   requestAnimationFrame(frame);
 })();
 </script>

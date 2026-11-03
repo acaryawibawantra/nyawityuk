@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#4aa05a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>NyawitYuk</title>
+<style>
+  :root{
+    --gold:#ffd24a; --panel:rgba(16,36,22,.86); --line:rgba(255,255,255,.18);
+    --text:#f4fbf4; --muted:#b8d6bf;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#3f8f4e;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--text)}
+  #app{position:fixed;inset:0;display:flex;flex-direction:column}
+  #stage{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+  canvas{display:block;touch-action:none;width:100%;height:100%}
+
+  .top{position:absolute;top:0;left:0;right:0;z-index:6;pointer-events:none;
+    padding:calc(8px + env(safe-area-inset-top)) 10px 0;
+    display:flex;gap:6px;align-items:flex-start;justify-content:space-between}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:6px 10px;font-size:clamp(10.5px,3.05vw,13px);font-weight:700;
+    backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .chip .v{color:var(--gold);font-variant-numeric:tabular-nums}
+  .chip.t .v{color:#b9f0c4}
+  .chip.p .v{color:#9fe6ff}
+  .chip.c .v{color:#ffe0a3}
+  .chip.bump{animation:bump .28s ease}
+  @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+  .demo-card{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translateX(-50%);
+    z-index:8;display:none;width:min(92vw,380px);background:rgba(46,20,12,.94);border:1px solid #f0885f;
+    border-radius:16px;padding:12px 14px;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .demo-card.on{display:block}
+  .demo-card .t{font-size:13.5px;font-weight:800;color:#ffd0bd}
+  .demo-card .d{font-size:12px;color:#ffc6ae;margin-top:3px;line-height:1.4}
+  .demo-card .row{display:flex;gap:8px;margin-top:9px}
+  .demo-card button{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.10);color:#fff;
+    border-radius:11px;padding:10px;font-size:13px;font-weight:800}
+  .demo-card button.buy{background:linear-gradient(#ffd166,#f0a12b);color:#3a2405;border-color:#ffd166}
+  .demo-card button:disabled{opacity:.5}
+
+  .bottom{position:absolute;left:0;right:0;bottom:0;z-index:7;pointer-events:none;
+    padding:0 calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    display:flex;align-items:flex-end;justify-content:flex-end}
+  .pill{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;
+    padding:12px 18px;font-size:13px;font-weight:800;backdrop-filter:blur(10px);pointer-events:auto;
+    box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .pill.gold{background:linear-gradient(#ffd868,#f2a627);color:#3a2405;border-color:#ffd868}
+  .pill:active{transform:scale(.97)}
+  .hint{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    font-size:11.5px;color:#eaffee;text-shadow:0 1px 3px rgba(0,0,0,.6);z-index:5;opacity:.92;text-align:center}
+
+  #toasts{position:absolute;left:50%;top:calc(108px + env(safe-area-inset-top));transform:translateX(-50%);
+    z-index:9;display:grid;gap:7px;justify-items:center;width:min(88vw,360px);pointer-events:none}
+  .toast{background:rgba(12,26,16,.9);border:1px solid var(--line);border-radius:12px;padding:9px 13px;
+    font-size:12.5px;font-weight:700;animation:in .2s ease}
+  @keyframes in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+  .sheet{position:fixed;inset:0;z-index:30;background:rgba(6,16,10,.72);backdrop-filter:blur(6px);
+    display:none;place-items:end center}
+  .sheet.open{display:grid}
+  .panel{width:min(560px,100%);max-height:86vh;overflow:auto;background:#14301d;border:1px solid var(--line);
+    border-radius:22px 22px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+  .panel h2{margin:0 0 2px;font-size:18px}
+  .panel p{margin:0 0 12px;font-size:12px;color:var(--muted)}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tab{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);
+    border-radius:11px;padding:10px;font-size:12.5px;font-weight:800}
+  .tab.active{background:#2f7d4f;border-color:#49a86b}
+  .item{display:flex;gap:11px;align-items:center;border:1px solid var(--line);border-radius:14px;
+    padding:11px;margin-bottom:8px;background:rgba(255,255,255,.04)}
+  .item .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:19px;
+    background:rgba(255,255,255,.07);flex:none}
+  .item .b{flex:1;min-width:0}
+  .item .n{font-size:13.5px;font-weight:800}
+  .item .d{font-size:11.5px;color:var(--muted);line-height:1.35;margin-top:2px}
+  .item .p{font-size:12.5px;font-weight:800;color:var(--gold);margin-top:3px}
+  .item button{border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--text);
+    border-radius:10px;padding:10px 13px;font-size:12.5px;font-weight:800;flex:none}
+  .item button.gold{background:linear-gradient(#ffd868,#f2a627);color:#3a2405;border-color:#ffd868}
+  .item button:disabled{opacity:.45}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage"><canvas id="cv"></canvas></div>
+
+  <div class="top">
+    <div class="chips">
+      <div class="chip">Rp <span class="v" id="ui-money">0</span></div>
+      <div class="chip t">Tebang <span class="v" id="ui-chopped">0</span></div>
+      <div class="chip p">Sawit <span class="v" id="ui-palms">0</span></div>
+      <div class="chip c">Sapi <span class="v" id="ui-cows">0</span></div>
+      <div class="chip" id="ui-tool">Kapak</div>
+    </div>
+    <div style="pointer-events:auto"><button class="pill" id="btn-mute" style="padding:9px 12px">🔊</button></div>
+  </div>
+
+  <div class="demo-card" id="demo-card">
+    <div class="t">📢 Warga demo</div>
+    <div class="d" id="demo-text"></div>
+    <div class="row">
+      <button class="buy" id="btn-pay">Bayar</button>
+      <button id="btn-ignore">Nanti</button>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
+
+  <div class="hint" id="hint">Geser analog untuk jalan · dekat pohon = otomatis menebang</div>
+
+  <div class="bottom"><button class="pill gold" id="btn-shop">Toko</button></div>
+
+  <div class="sheet" id="shop">
+    <div class="panel">
+      <h2>Toko & Kebun</h2>
+      <p>Tebang hutan → uang → alat & bibit sawit → panen. Warga sekitar minta bagian.</p>
+      <div class="tabs">
+        <button class="tab active" data-tab="alat">Alat</button>
+        <button class="tab" data-tab="bibit">Bibit</button>
+        <button class="tab" data-tab="ternak">Ternak</button>
+        <button class="tab" data-tab="warga">Warga</button>
+      </div>
+      <div id="shop-list"></div>
+      <button class="pill" id="btn-close" style="width:100%;margin-top:8px">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  // ================= dunia =================
+  const COLS = 22, ROWS = 22;
+  const TW = 68, TH = 34;                  // tile isometrik 2:1
+  const SAVE_KEY = "nyawityuk.v2";
+
+  const TOOLS = {
+    kapak:    { name:"Kapak",    icon:"🪓", dmg:2, price:0,   use:0,  swing:0.18, desc:"Alat awal · 1 ayunan per pohon" },
+    pemotong: { name:"Pemotong", icon:"🪚", dmg:5, price:120, use:0,  swing:0.11, desc:"Chainsaw · 1 ayunan, super cepat" },
+    api:      { name:"Api",      icon:"🔥", dmg:6, price:280, use:8,  swing:0.26, desc:"Bakar 3×3 petak · Rp8/pakai" },
+    traktor:  { name:"Traktor",  icon:"🚜", dmg:9, price:700, use:20, swing:0.16, desc:"Bersihkan 3×3 instan · Rp20/pakai" },
+  };
+  const ORDER = ["kapak","pemotong","api","traktor"];
+  const TREE_VALUE = 10, BIBIT_PRICE = 25, HARVEST_VALUE = 60;
+  const GROW_FULL = 14;          // sawit cepat panen
+  const REACH = 1.75;
+  const DEMO_EVERY = 30;         // demo warga jauh lebih jarang
+  const COW_PRICE = 320, COW_INCOME = 14, COW_PERIOD = 5, COW_MAX = 8;
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const TAU = Math.PI * 2;
+
+  // ================= state =================
+  function makeTiles(){
+    const t = [];
+    for (let y = 0; y < ROWS; y++){
+      const r = [];
+      for (let x = 0; x < COLS; x++){
+        const edge = x < 2 || y < 2 || x > COLS-3 || y > ROWS-3;
+        const roll = Math.random();
+        let type;
+        if (edge) type = roll > 0.55 ? "tree" : "grass";
+        else if (roll > 0.72) type = "tree";        // hutan (lebih terbuka)
+        else if (roll > 0.64) type = "wheat";       // ladang gandum dekoratif
+        else if (roll > 0.30) type = "grass";       // padang
+        else if (roll > 0.24) type = "dirt";        // tanah terbuka
+        else type = "grass";
+        r.push({ type, hp: type === "tree" ? 2 : 0, grow: 0, blocked: 0 });
+      }
+      t.push(r);
+    }
+    for (let y = 10; y <= 12; y++) for (let x = 10; x <= 13; x++)
+      t[y][x] = { type:"dirt", hp:0, grow:0, blocked:0 };
+    // kolam kecil dekoratif
+    for (let y = 15; y <= 17; y++) for (let x = 4; x <= 7; x++)
+      t[y][x] = { type:"water", hp:0, grow:0, blocked:0 };
+    for (let y = 5; y <= 7; y++) for (let x = 16; x <= 18; x++)
+      t[y][x] = { type:"water", hp:0, grow:0, blocked:0 };
+    return t;
+  }
+  function newState(){
+    return {
+      tiles: makeTiles(), money: 0, chopped: 0, palms: 0, harvested: 0, cows: [],
+      bibit: 0, tool: "kapak", owned: { kapak:true },
+      px: 11.5, py: 11.5, vx: 0, vy: 0, facing: "down", walk: 0, swing: 0,
+      camX: 11.5, camY: 11.5, muted: false, t: 0,
+      demo: null, demoPaid: 0, nextDemoAt: DEMO_EVERY, plantTimer: 0, swingCd: 0
+    };
+  }
+  let S = null;
+
+  function save(){
+    try{
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        tiles:S.tiles, money:S.money, chopped:S.chopped, palms:S.palms, harvested:S.harvested,
+        cows:S.cows,
+        bibit:S.bibit, tool:S.tool, owned:S.owned, px:S.px, py:S.py, facing:S.facing,
+        demo:S.demo, demoPaid:S.demoPaid, nextDemoAt:S.nextDemoAt, muted:S.muted
+      }));
+    }catch{}
+  }
+  function load(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.tiles) || d.tiles.length !== ROWS) return null;
+      return Object.assign(newState(), d);
+    }catch{ return null; }
+  }
+
+  // ================= util =================
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const tileAt=(x,y)=>(x<0||y<0||x>=COLS||y>=ROWS)?null:S.tiles[y][x];
+  const isSolid=t=>t&&(t.type==="tree"||t.type==="palm"||t.type==="water");
+  const rp=n=>"Rp"+Math.round(n).toLocaleString("id-ID");
+
+  function haptic(ms=10){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch{} }
+  function toast(msg, ms=1900){
+    const box=document.getElementById("toasts");
+    if (box.lastElementChild && box.lastElementChild.textContent===msg) return;
+    const el=document.createElement("div"); el.className="toast"; el.textContent=msg;
+    box.appendChild(el);
+    while (box.children.length>3) box.firstElementChild.remove();
+    setTimeout(()=>el.remove(), ms);
+  }
+  let actx=null;
+  function beep(freq,dur,type="sine",gain=0.05){
+    if (S && S.muted) return;
+    try{
+      actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      const o=actx.createOscillator(), g=actx.createGain();
+      o.type=type; o.frequency.value=freq; g.gain.value=gain;
+      o.connect(g); g.connect(actx.destination); o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+      o.stop(actx.currentTime+dur);
+    }catch{}
+  }
+
+  // ================= kamera & proyeksi =================
+  let cam = { scale:1, ox:0, oy:0, cssW:0, cssH:0, dpr:1 };
+  const isoX=(x,y)=>(x-y)*TW/2;
+  const isoY=(x,y)=>(x+y)*TH/2;
+
+  function resize(){
+    const stage=document.getElementById("stage");
+    const cssW=Math.max(240, stage.clientWidth||window.innerWidth);
+    const cssH=Math.max(240, stage.clientHeight||window.innerHeight);
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    if (cv.width!==Math.round(cssW*dpr)||cv.height!==Math.round(cssH*dpr)){
+      cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
+    }
+    cam={ scale: clamp(cssW/340, 0.85, 1.55), cssW, cssH, dpr, ox: cssW/2, oy: cssH*0.54 };
+  }
+  function toScreen(x,y){
+    const sx=(isoX(x,y)-isoX(S.camX,S.camY))*cam.scale + cam.ox;
+    const sy=(isoY(x,y)-isoY(S.camX,S.camY))*cam.scale + cam.oy;
+    return { x:sx, y:sy };
+  }
+
+  // ================= aksi otomatis =================
+  const floats=[], parts=[];
+
+  function targetNear(){
+    let best=null;
+    const cx=Math.floor(S.px), cy=Math.floor(S.py);
+    for (let y=cy-2;y<=cy+2;y++) for (let x=cx-2;x<=cx+2;x++){
+      const t=tileAt(x,y);
+      if (!t||t.blocked) continue;
+      if (t.type!=="tree"&&t.type!=="palm") continue;
+      const d=Math.hypot(x+0.5-S.px, y+0.5-S.py);
+      if (d<=REACH && (!best||d<best.d)) best={x,y,d,t};
+    }
+    return best;
+  }
+  function faceTo(x,y){
+    const dx=x+0.5-S.px, dy=y+0.5-S.py;
+    S.facing=Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");
+  }
+
+  function swingAt(tg){
+    const tool=TOOLS[S.tool], {x,y,t}=tg;
+    S.swing=1;
+    if (t.type==="palm"){
+      if (t.grow>=GROW_FULL){
+        S.money+=HARVEST_VALUE; S.harvested++;
+        t.grow=GROW_FULL*0.45;
+        floatText(x,y,"+"+HARVEST_VALUE,"#9fe6ff");
+        spawn(x,y,"#9fe6ff",10); beep(880,.12,"triangle",.06); haptic(16);
+        toast("Panen sawit "+rp(HARVEST_VALUE)); paintHud(); save();
+      }
+      return;
+    }
+    if (tool.use && S.money<tool.use){ toast("Uang kurang untuk "+tool.name); return; }
+    if (tool.use) S.money-=tool.use;
+
+    const area=(S.tool==="api"||S.tool==="traktor")?1:0;
+    let fell=0;
+    for (let yy=y-area;yy<=y+area;yy++) for (let xx=x-area;xx<=x+area;xx++){
+      const tt=tileAt(xx,yy);
+      if (!tt||tt.type!=="tree") continue;
+      tt.hp-=tool.dmg;
+      if (tt.hp<=0){ tt.type="dirt"; tt.hp=0; tt.grow=0; fell++; spawn(xx,yy,"#4fbf6a",7); }
+    }
+    if (fell===0 && area===0){
+      t.hp-=tool.dmg;
+      if (t.hp<=0){ t.type="dirt"; t.hp=0; fell=1; spawn(x,y,"#4fbf6a",8); }
+      else spawn(x,y,"#c9a36a",4);
+    }
+    if (fell>0){
+      const earn=fell*TREE_VALUE;
+      S.money+=earn; S.chopped+=fell;
+      floatText(x,y,"+"+earn,"#eaffb0");
+      beep(240+Math.random()*70,.08,"square",.05); haptic(fell>1?20:12);
+      if (fell>1) toast(fell+" pohon tumbang · "+rp(earn),1400);
+      maybeDemo(); paintHud(); save();
+    } else {
+      beep(150,.05,"sine",.028);
+    }
+  }
+
+  function maybePlant(){
+    if (S.bibit<=0) return;
+    const x=Math.floor(S.px), y=Math.floor(S.py);
+    const t=tileAt(x,y);
+    if (!t||t.type!=="dirt"||t.blocked) return;
+    t.type="sapling"; t.grow=0.001; S.bibit--; haptic(8);
+    beep(520,.1,"triangle",.05); toast("Bibit sawit ditanam 🌱",1400);
+    paintHud(); save();
+  }
+
+  function maybeDemo(){
+    if (S.demo||S.chopped<S.nextDemoAt) return;
+    const demand=70+Math.round(S.chopped*0.9);
+    const blockers=[]; let tries=0;
+    while (blockers.length<3&&tries<300){
+      tries++;
+      const x=1+Math.floor(Math.random()*(COLS-2)), y=1+Math.floor(Math.random()*(ROWS-2));
+      const t=tileAt(x,y);
+      if (t&&t.type==="dirt"&&!t.blocked){ t.blocked=1; blockers.push([x,y]); }
+    }
+    S.demo={ demand, blockers, timer:55, x:S.px+1.3, y:S.py-1.5 };
+    S.nextDemoAt=S.chopped+DEMO_EVERY;
+    paintDemo(); beep(300,.2,"sawtooth",.05); haptic(30);
+    toast("Warga demo! Mereka minta "+rp(demand),2600);
+  }
+  function payDemo(){
+    if (!S.demo) return;
+    if (S.money<S.demo.demand) return toast("Uang belum cukup: butuh "+rp(S.demo.demand));
+    S.money-=S.demo.demand; S.demoPaid+=S.demo.demand;
+    for (const [x,y] of S.demo.blockers){ const t=tileAt(x,y); if (t) t.blocked=0; }
+    S.demo=null; paintDemo(); paintHud(); save();
+    toast("Warga tenang 🙏"); beep(660,.14,"triangle",.06);
+  }
+  function paintDemo(){
+    const card=document.getElementById("demo-card");
+    if (!S.demo){ card.classList.remove("on"); return; }
+    card.classList.add("on");
+    document.getElementById("demo-text").innerHTML =
+      "Mereka menutup "+S.demo.blockers.length+" petak dan minta <b>"+rp(S.demo.demand)+
+      "</b>.<br>Dibiarkan → tuntutan naik dalam "+Math.ceil(S.demo.timer)+" dtk.";
+    const btn=document.getElementById("btn-pay");
+    btn.textContent="Bayar "+rp(S.demo.demand);
+    btn.disabled = S.money < S.demo.demand;
+  }
+
+  // ================= partikel =================
+  function spawn(x,y,color,n=8){
+    for (let i=0;i<n;i++){
+      parts.push({ x:x+0.5+(Math.random()-.5)*.5, y:y+0.5+(Math.random()-.5)*.5,
+        z:16+Math.random()*14, vx:(Math.random()-.5)*1.6, vy:(Math.random()-.5)*1.6,
+        vz:36+Math.random()*44, life:0.65, color });
+    }
+  }
+  function floatText(x,y,text,color){
+    floats.push({ x:x+0.5, y:y+0.5, z:34, text, color, life:1.1 });
+  }
+
+  // ================= update =================
+  function update(dt){
+    S.t+=dt;
+    const speed=4.0;
+    let mvx=S.vx, mvy=S.vy;
+    const mag=Math.hypot(mvx,mvy);
+    if (mag>0.12){
+      if (mag>1){ mvx/=mag; mvy/=mag; }
+      const nx=S.px+mvx*speed*dt, ny=S.py+mvy*speed*dt;
+      if (!isSolid(tileAt(Math.floor(nx),Math.floor(S.py)))) S.px=clamp(nx,0.6,COLS-0.6);
+      if (!isSolid(tileAt(Math.floor(S.px),Math.floor(ny)))) S.py=clamp(ny,0.6,ROWS-0.6);
+      S.walk+=dt*9;
+      S.facing=Math.abs(mvx)>Math.abs(mvy)?(mvx>0?"right":"left"):(mvy>0?"down":"up");
+    } else {
+      S.walk*=Math.max(0,1-dt*8);
+    }
+
+    S.camX += (S.px-S.camX)*Math.min(1,dt*6);
+    S.camY += (S.py-S.camY)*Math.min(1,dt*6);
+
+    // jaga kamera tetap di dalam peta (jangan sampai kelihatan dunia kosong)
+    {
+      const halfW=(cam.cssW/2)/cam.scale, halfH=(cam.cssH/2)/cam.scale;
+      let ix=isoX(S.camX,S.camY), iy=isoY(S.camX,S.camY);
+      const minIx=-ROWS*TW/2, maxIx=COLS*TW/2;
+      const minIy=-TH, maxIy=(COLS+ROWS)*TH/2;
+      ix = (maxIx-minIx > halfW*2) ? clamp(ix, minIx+halfW, maxIx-halfW) : (minIx+maxIx)/2;
+      iy = (maxIy-minIy > halfH*2) ? clamp(iy, minIy+halfH, maxIy-halfH) : (minIy+maxIy)/2;
+      const nx=(ix/(TW/2)+iy/(TH/2))/2, ny=(iy/(TH/2)-ix/(TW/2))/2;
+      S.camX=nx; S.camY=ny;
+    }
+
+    S.swing=Math.max(0,S.swing-dt*3.2);
+    S.swingCd-=dt;
+    const tg=targetNear();
+    if (tg){
+      faceTo(tg.x,tg.y);
+      if (S.swingCd<=0){ S.swingCd=TOOLS[S.tool].swing; swingAt(tg); }
+    } else {
+      S.swingCd=0;
+    }
+
+    // tanam otomatis: berdiri diam di tanah kosong dengan bibit di tas
+    const here=tileAt(Math.floor(S.px),Math.floor(S.py));
+    if (here&&here.type==="dirt"&&S.bibit>0&&mag<=0.12){
+      S.plantTimer+=dt;
+      if (S.plantTimer>0.16){ S.plantTimer=0; maybePlant(); }
+    } else S.plantTimer=0;
+
+    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
+      const t=S.tiles[y][x];
+      if (t.type==="sapling"){
+        t.grow+=dt;
+        if (t.grow>=GROW_FULL){ t.type="palm"; t.grow=GROW_FULL; S.palms++; save(); }
+      } else if (t.type==="palm"&&t.grow<GROW_FULL) t.grow+=dt;
+    }
+
+    if (S.demo){
+      S.demo.timer-=dt;
+      if (S.demo.timer<=0){
+        S.demo.timer=45;
+        S.demo.demand=Math.round(S.demo.demand*1.15);
+        let extra=0,tries=0;
+        while (extra<2&&tries<120){
+          tries++;
+          const x=1+Math.floor(Math.random()*(COLS-2)), y=1+Math.floor(Math.random()*(ROWS-2));
+          const t=tileAt(x,y);
+          if (t&&t.type==="dirt"&&!t.blocked){ t.blocked=1; S.demo.blockers.push([x,y]); extra++; }
+        }
+        toast("Tuntutan naik jadi "+rp(S.demo.demand));
+        paintDemo(); paintHud();
+      }
+    }
+
+    // sapi: jalan-jalan & hasilkan uang
+    for (const c of S.cows){
+      c.t+=dt; c.phase+=dt*2;
+      if (Math.random()<dt*0.9) c.dir+=(Math.random()-.5)*1.8;
+      const nx=c.x+Math.cos(c.dir)*0.55*dt, ny=c.y+Math.sin(c.dir)*0.55*dt;
+      const tt=tileAt(Math.floor(nx),Math.floor(ny));
+      if (tt&&(tt.type==="grass"||tt.type==="dirt")&&!tt.blocked){ c.x=nx; c.y=ny; }
+      else c.dir+=2.2;
+      if (c.t>=COW_PERIOD){
+        c.t=0; S.money+=COW_INCOME;
+        floatText(c.x-0.5, c.y-0.5, "+"+COW_INCOME, "#ffe9a8");
+        beep(700,.05,"triangle",.03); paintHud();
+      }
+    }
+
+    for (let i=parts.length-1;i>=0;i--){
+      const p=parts[i];
+      p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt; p.vz-=170*dt; p.life-=dt;
+      if (p.life<=0) parts.splice(i,1);
+    }
+    for (let i=floats.length-1;i>=0;i--){
+      const f=floats[i]; f.z+=26*dt; f.life-=dt;
+      if (f.life<=0) floats.splice(i,1);
+    }
+  }
+
+  // ================= menggambar =================
+  function diamond(x,y,color){
+    const p=toScreen(x,y), w=TW/2*cam.scale, h=TH/2*cam.scale;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y-h); ctx.lineTo(p.x+w, p.y);
+    ctx.lineTo(p.x, p.y+h); ctx.lineTo(p.x-w, p.y);
+    ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+  }
+  function shadow(x,y,rw,rh,alpha=0.18){
+    const p=toScreen(x,y);
+    ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle="#0b2412";
+    ctx.beginPath(); ctx.ellipse(p.x, p.y+2*cam.scale, rw*cam.scale, rh*cam.scale, 0, 0, TAU);
+    ctx.fill(); ctx.restore();
+  }
+
+  function drawTree(x,y,t){
+    const p=toScreen(x,y), s=cam.scale;
+    const shake=(t.hp<2)?Math.sin(S.t*30+x)*2.2*s:0;
+    shadow(x,y,22,10,0.20);
+    ctx.fillStyle="#8a5a34";
+    ctx.beginPath(); ctx.roundRect(p.x-3.5*s+shake, p.y-34*s, 7*s, 32*s, 3*s); ctx.fill();
+    const blobs=[[0,-45,17,"#2f7d4a"],[-8,-53,13,"#3f9c5b"],[7,-54,12,"#4bb169"]];
+    for (const [dx,dy,r,c] of blobs){
+      ctx.fillStyle=c;
+      ctx.beginPath(); ctx.arc(p.x+dx*s+shake, p.y+dy*s, r*s, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha=.30; ctx.fillStyle="#c9f7cf";
+    ctx.beginPath(); ctx.arc(p.x-5*s+shake, p.y-56*s, 5*s, 0, TAU); ctx.fill();
+    ctx.globalAlpha=1;
+    if (t.hp<2){
+      ctx.strokeStyle="rgba(35,22,10,.55)"; ctx.lineWidth=2*s;
+      ctx.beginPath(); ctx.moveTo(p.x-3*s+shake,p.y-34*s); ctx.lineTo(p.x+4*s+shake,p.y-12*s); ctx.stroke();
+    }
+  }
+
+  function drawPalm(x,y,t){
+    const p=toScreen(x,y), s=cam.scale;
+    const grown=clamp(t.grow/GROW_FULL,0,1);
+    const hgt=16+42*grown;
+    shadow(x,y,18,8,0.20);
+    ctx.strokeStyle="#9a7448"; ctx.lineWidth=Math.max(2.5,6*grown*s); ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(p.x,p.y);
+    ctx.quadraticCurveTo(p.x+4*s, p.y-hgt*0.6*s, p.x+2*s, p.y-hgt*s); ctx.stroke();
+    const cx=p.x+2*s, cy=p.y-hgt*s;
+    const fronds= grown>0.55?7:4;
+    for (let i=0;i<fronds;i++){
+      const a=(-Math.PI*0.95)+i*(Math.PI*1.9/(fronds-1));
+      ctx.strokeStyle= grown>=1?"#2f8a4d":"#59a86b";
+      ctx.lineWidth=Math.max(2,5*grown*s);
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.quadraticCurveTo(cx+Math.cos(a)*16*s, cy+Math.sin(a)*12*s,
+                           cx+Math.cos(a)*30*s, cy+Math.sin(a)*22*s);
+      ctx.stroke();
+    }
+    if (grown>=1){
+      ctx.fillStyle="#ffcf4a";
+      ctx.beginPath(); ctx.arc(cx+3*s, cy+7*s, 4*s, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx-5*s, cy+9*s, 3.6*s, 0, TAU); ctx.fill();
+      const bob=Math.sin(S.t*3)*3*s;
+      ctx.fillStyle="rgba(255,255,255,.92)"; ctx.textAlign="center";
+      ctx.font=`bold ${11*s}px -apple-system,sans-serif`;
+      ctx.fillText("siap panen", cx, cy-24*s+bob);
+    }
+  }
+
+  const BARN={x:8,y:8};
+  function drawBarn(x,y){
+    const p=toScreen(x,y), s=cam.scale;
+    shadow(x,y,34,14,0.22);
+    ctx.fillStyle="#c0452f";
+    ctx.beginPath(); ctx.roundRect(p.x-26*s, p.y-46*s, 52*s, 40*s, 4*s); ctx.fill();
+    ctx.fillStyle="#a83a26";
+    ctx.fillRect(p.x-26*s, p.y-20*s, 52*s, 14*s);
+    ctx.fillStyle="#7a3a2a";
+    ctx.beginPath();
+    ctx.moveTo(p.x-32*s, p.y-46*s); ctx.lineTo(p.x, p.y-72*s);
+    ctx.lineTo(p.x+32*s, p.y-46*s); ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#f3e6d2";
+    ctx.beginPath(); ctx.roundRect(p.x-10*s, p.y-28*s, 20*s, 22*s, 3*s); ctx.fill();
+    ctx.strokeStyle="#c0452f"; ctx.lineWidth=2*s;
+    ctx.beginPath(); ctx.moveTo(p.x-10*s,p.y-28*s); ctx.lineTo(p.x+10*s,p.y-6*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x+10*s,p.y-28*s); ctx.lineTo(p.x-10*s,p.y-6*s); ctx.stroke();
+  }
+
+  function drawCow(x,y){
+    const p=toScreen(x,y), s=cam.scale, bob=Math.sin(S.t*3+x*2)*1.5*s;
+    shadow(x,y,20,9,0.20);
+    ctx.fillStyle="#f9f6ef";
+    ctx.beginPath(); ctx.ellipse(p.x, p.y-20*s+bob, 17*s, 11*s, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle="#3b3b3b";
+    ctx.beginPath(); ctx.arc(p.x-6*s, p.y-23*s+bob, 4.2*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+6*s, p.y-17*s+bob, 3.2*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#fdfbf6";
+    ctx.beginPath(); ctx.arc(p.x+13*s, p.y-26*s+bob, 8*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#e6d9c6";
+    ctx.beginPath(); ctx.ellipse(p.x+8.5*s, p.y-31*s+bob, 3*s, 2*s, -0.5, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x+17.5*s, p.y-31*s+bob, 3*s, 2*s, 0.5, 0, TAU); ctx.fill();
+    ctx.strokeStyle="#d8c9a8"; ctx.lineWidth=2*s; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(p.x+11*s,p.y-33*s+bob); ctx.lineTo(p.x+9*s,p.y-37*s+bob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x+16*s,p.y-33*s+bob); ctx.lineTo(p.x+18.5*s,p.y-37*s+bob); ctx.stroke();
+    ctx.fillStyle="#2b2b2b";
+    ctx.beginPath(); ctx.arc(p.x+15*s, p.y-27.5*s+bob, 1.5*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#f0b9b0";
+    ctx.beginPath(); ctx.ellipse(p.x+20*s, p.y-23*s+bob, 3.4*s, 2.6*s, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle="#efe9df"; ctx.lineWidth=3*s;
+    [[-9],[-3],[5],[11]].forEach(([dx],i)=>{
+      const off=Math.sin(S.t*6+i)*1.6*s;
+      ctx.beginPath(); ctx.moveTo(p.x+dx*s, p.y-11*s+bob);
+      ctx.lineTo(p.x+dx*s+off, p.y-1*s+bob); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.moveTo(p.x-16*s,p.y-22*s+bob);
+    ctx.quadraticCurveTo(p.x-22*s,p.y-16*s+bob,p.x-20*s,p.y-12*s+bob); ctx.stroke();
+  }
+
+  function drawVillager(x,y){
+    const p=toScreen(x,y), s=cam.scale, bob=Math.sin(S.t*4+x)*2*s;
+    shadow(x,y,14,7,0.22);
+    ctx.fillStyle="#e07a5f";
+    ctx.beginPath(); ctx.roundRect(p.x-7*s, p.y-30*s+bob, 14*s, 22*s, 6*s); ctx.fill();
+    ctx.fillStyle="#f7d9a8";
+    ctx.beginPath(); ctx.arc(p.x, p.y-34*s+bob, 8*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#3b2a1c";
+    ctx.beginPath(); ctx.arc(p.x-3*s, p.y-35*s+bob, 1.6*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+3*s, p.y-35*s+bob, 1.6*s, 0, TAU); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.textAlign="center";
+    ctx.font=`${11*s}px sans-serif`; ctx.fillText("📢", p.x, p.y-46*s+bob);
+  }
+
+  function drawPlayer(){
+    const p=toScreen(S.px,S.py), s=cam.scale*1.14;
+    shadow(S.px,S.py,16,7,0.24);
+    const bob=Math.abs(Math.sin(S.walk))*3*s;
+    const sw=Math.sin(S.swing*Math.PI);
+    const flip=S.facing==="left"?-1:1;
+
+    ctx.fillStyle="#2b3b52";
+    ctx.beginPath(); ctx.roundRect(p.x-8*s, p.y-10*s+bob, 6*s, 12*s, 3*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(p.x+2*s, p.y-10*s+bob, 6*s, 12*s, 3*s); ctx.fill();
+
+    ctx.save();
+    ctx.shadowColor="rgba(255,255,255,.95)"; ctx.shadowBlur=10*s;
+    ctx.fillStyle="#f2b544";
+    ctx.beginPath(); ctx.roundRect(p.x-10*s, p.y-30*s+bob, 20*s, 22*s, 7*s); ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle="#f7d9a8";
+    ctx.beginPath(); ctx.arc(p.x, p.y-38*s+bob, 10*s, 0, TAU); ctx.fill();
+
+    ctx.fillStyle="#2f7d4f";
+    ctx.beginPath(); ctx.arc(p.x, p.y-41*s+bob, 10.5*s, Math.PI, 0); ctx.fill();
+    ctx.fillRect(p.x-13*s, p.y-41*s+bob, 26*s, 3.5*s);
+
+    ctx.fillStyle="#243018";
+    const ex=S.facing==="left"?-3:S.facing==="right"?3:0;
+    ctx.beginPath(); ctx.arc(p.x-3.5*s+ex*s, p.y-37*s+bob, 1.7*s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+3.5*s+ex*s, p.y-37*s+bob, 1.7*s, 0, TAU); ctx.fill();
+
+    // tangan + kapak mengayun
+    ctx.save();
+    ctx.translate(p.x+flip*9*s, p.y-24*s+bob);
+    ctx.rotate((-0.7+sw*1.9)*flip);
+    ctx.strokeStyle="#f7d9a8"; ctx.lineWidth=4*s; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(9*s*flip,4*s); ctx.stroke();
+    ctx.strokeStyle="#8a5a34"; ctx.lineWidth=4*s;
+    ctx.beginPath(); ctx.moveTo(6*s*flip,2*s); ctx.lineTo(16*s*flip,-10*s); ctx.stroke();
+    ctx.fillStyle="#cfd8de";
+    ctx.beginPath();
+    ctx.moveTo(13*s*flip,-12*s); ctx.lineTo(22*s*flip,-16*s);
+    ctx.lineTo(23*s*flip,-9*s); ctx.lineTo(14*s*flip,-6*s); ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    if (S.tool!=="kapak"){
+      ctx.textAlign="center"; ctx.font=`${13*s}px sans-serif`;
+      ctx.fillText(TOOLS[S.tool].icon, p.x, p.y-54*s+bob);
+    }
+  }
+
+  function drawGround(){
+    const s=cam.scale;
+    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
+      const t=S.tiles[y][x];
+      const p=toScreen(x,y);
+      if (p.x<-TW*s || p.x>cam.cssW+TW*s || p.y<-TH*s || p.y>cam.cssH+TH*s) continue;
+      const green=(x+y)%2?"#5cb85f":"#55ae59";
+      const col = t.type==="tree" ? green
+                : t.type==="wheat" ? ((x+y)%2?"#e3b53c":"#dcac31")
+                : t.type==="water" ? ((x+y)%2?"#49a6da":"#439dd0")
+                : t.type==="dirt" ? ((x+y)%2?"#b08860":"#a98057")
+                : green;
+      diamond(x,y, col);
+      if (t.type==="wheat"){
+        ctx.save(); ctx.globalAlpha=.55; ctx.strokeStyle="#c48f22"; ctx.lineWidth=1.6*s;
+        for (let i=0;i<5;i++){
+          const ax=p.x+((x*13+i*7+y*5)%16-8)*s*0.55, ay=p.y+((y*11+i*5+x*3)%10-5)*s*0.35;
+          ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax+1.5*s,ay-6.5*s); ctx.stroke();
+          ctx.beginPath(); ctx.arc(ax+1.5*s, ay-7.5*s, 1.5*s, 0, TAU);
+          ctx.fillStyle="#f6d268"; ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (t.type==="dirt"){
+        ctx.save(); ctx.globalAlpha=.15; ctx.fillStyle="#6b4a2f";
+        for (let i=0;i<3;i++){
+          const rx=(x*7+i*11+y*3)%10-5, ry=(y*5+i*7+x*2)%6-3;
+          ctx.beginPath(); ctx.ellipse(p.x+rx*s*.55, p.y+ry*s*.32, 4*s, 2*s, 0, 0, TAU); ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (t.blocked){
+        ctx.save(); ctx.globalAlpha=.45; diamond(x,y,"#e0785f"); ctx.restore();
+      }
+    }
+    // semak & batu dekoratif di padang
+    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
+      const t=S.tiles[y][x];
+      if (t.type!=="grass") continue;
+      const h=(x*73856093 ^ y*19349663) >>> 0;
+      if (h % 7 !== 0) continue;
+      const p=toScreen(x+0.5,y+0.5);
+      if (h % 2 === 0){
+        ctx.fillStyle="#3f8f4e";
+        ctx.beginPath(); ctx.arc(p.x, p.y-3*s, 5.5*s, 0, TAU); ctx.fill();
+        ctx.fillStyle="#4aa05a";
+        ctx.beginPath(); ctx.arc(p.x-2*s, p.y-6*s, 4*s, 0, TAU); ctx.fill();
+      } else {
+        ctx.fillStyle="#9aa79a";
+        ctx.beginPath(); ctx.ellipse(p.x, p.y-1*s, 5*s, 3.5*s, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle="#b9c4b8";
+        ctx.beginPath(); ctx.ellipse(p.x-1.5*s, p.y-3*s, 2.5*s, 1.6*s, 0, 0, TAU); ctx.fill();
+      }
+    }
+  }
+
+  function render(){
+    resize();
+    ctx.setTransform(cam.dpr,0,0,cam.dpr,0,0);
+    ctx.clearRect(0,0,cam.cssW,cam.cssH);
+    const g=ctx.createLinearGradient(0,0,0,cam.cssH);
+    g.addColorStop(0,"#7ec97f"); g.addColorStop(1,"#3f8f4e");
+    ctx.fillStyle=g; ctx.fillRect(0,0,cam.cssW,cam.cssH);
+
+    drawGround();
+
+    const objs=[];
+    for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
+      const t=S.tiles[y][x];
+      if (t.type==="tree"||t.type==="palm"||t.type==="sapling") objs.push({d:x+y,x,y,t});
+    }
+    objs.push({d:BARN.x+BARN.y, x:BARN.x, y:BARN.y, barn:true});
+    for (const c of S.cows) objs.push({d:c.x+c.y, x:c.x, y:c.y, cow:true});
+    if (S.demo) objs.push({d:S.demo.x+S.demo.y, x:S.demo.x, y:S.demo.y, villager:true});
+    objs.push({d:S.px+S.py, player:true});
+    objs.sort((a,b)=>a.d-b.d);
+
+    for (const o of objs){
+      if (o.player) drawPlayer();
+      else if (o.barn) drawBarn(o.x,o.y);
+      else if (o.cow) drawCow(o.x,o.y);
+      else if (o.villager) drawVillager(o.x,o.y);
+      else if (o.t.type==="tree") drawTree(o.x,o.y,o.t);
+      else drawPalm(o.x,o.y,o.t);
+    }
+
+    for (const p of parts){
+      const sp=toScreen(p.x,p.y), s=cam.scale;
+      ctx.globalAlpha=clamp(p.life/0.65,0,1);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(sp.x-2*s, sp.y-p.z*0.6*s, 4*s, 4*s);
+    }
+    ctx.globalAlpha=1;
+
+    ctx.textAlign="center";
+    for (const f of floats){
+      const sp=toScreen(f.x,f.y), s=cam.scale;
+      ctx.globalAlpha=clamp(f.life/1.1,0,1);
+      ctx.font=`bold ${14*s}px -apple-system,sans-serif`;
+      ctx.lineWidth=3*s; ctx.strokeStyle="rgba(10,30,15,.65)";
+      ctx.strokeText(f.text, sp.x, sp.y-f.z*s);
+      ctx.fillStyle=f.color; ctx.fillText(f.text, sp.x, sp.y-f.z*s);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // ================= analog =================
+  const stick={ active:false, id:null, bx:0, by:0, x:0, y:0, r:56 };
+  function stickDiff(){ return { dx: stick.x-stick.bx, dy: stick.y-stick.by }; }
+  function moveStick(e){
+    const r=cv.getBoundingClientRect();
+    let dx=(e.clientX-r.left)-stick.bx, dy=(e.clientY-r.top)-stick.by;
+    const len=Math.hypot(dx,dy);
+    if (len>stick.r){ dx=dx/len*stick.r; dy=dy/len*stick.r; }
+    stick.x=stick.bx+dx; stick.y=stick.by+dy;
+    S.vx=dx/stick.r; S.vy=dy/stick.r;
+  }
+  cv.addEventListener("pointerdown", e=>{
+    if (stick.active) return;
+    const r=cv.getBoundingClientRect();
+    stick.active=true; stick.id=e.pointerId;
+    stick.bx=e.clientX-r.left; stick.by=e.clientY-r.top;
+    stick.x=stick.bx; stick.y=stick.by;
+    stick.r=Math.max(46,Math.min(74,Math.min(r.width,r.height)*0.16));
+    try{ cv.setPointerCapture(e.pointerId); }catch{}
+    e.preventDefault();
+  }, {passive:false});
+  cv.addEventListener("pointermove", e=>{
+    if (!stick.active||e.pointerId!==stick.id) return;
+    moveStick(e); e.preventDefault();
+  }, {passive:false});
+  function endStick(e){
+    if (!stick.active||(e&&e.pointerId!==stick.id)) return;
+    stick.active=false; stick.id=null; S.vx=0; S.vy=0;
+  }
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>cv.addEventListener(ev,endStick));
+  cv.addEventListener("contextmenu", e=>e.preventDefault());
+
+  const keys=new Set();
+  addEventListener("keydown",e=>{
+    const k=e.key.toLowerCase();
+    if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"].includes(k)){ keys.add(k); e.preventDefault(); }
+  });
+  addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
+  function applyKeys(){
+    if (stick.active) return;
+    let x=0,y=0;
+    if (keys.has("a")||keys.has("arrowleft")) x-=1;
+    if (keys.has("d")||keys.has("arrowright")) x+=1;
+    if (keys.has("w")||keys.has("arrowup")) y-=1;
+    if (keys.has("s")||keys.has("arrowdown")) y+=1;
+    S.vx=x; S.vy=y;
+  }
+
+  function drawStick(){
+    if (!stick.active) return;
+    ctx.save();
+    ctx.globalAlpha=.28; ctx.fillStyle="#0d2416";
+    ctx.beginPath(); ctx.arc(stick.bx,stick.by,stick.r,0,TAU); ctx.fill();
+    ctx.globalAlpha=.5; ctx.strokeStyle="#eafff0"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(stick.bx,stick.by,stick.r,0,TAU); ctx.stroke();
+    const d=stickDiff();
+    ctx.globalAlpha=.9; ctx.fillStyle="#f4fff6";
+    ctx.beginPath(); ctx.arc(stick.bx+d.dx, stick.by+d.dy, stick.r*0.42, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+
+  // ================= UI =================
+  let lastMoney=null;
+  function paintHud(){
+    const moneyEl=document.getElementById("ui-money");
+    moneyEl.textContent=Math.round(S.money).toLocaleString("id-ID");
+    if (lastMoney!==null && S.money>lastMoney){
+      const chip=moneyEl.closest(".chip");
+      chip.classList.remove("bump"); void chip.offsetWidth; chip.classList.add("bump");
+    }
+    lastMoney=S.money;
+    document.getElementById("ui-chopped").textContent=S.chopped;
+    document.getElementById("ui-palms").textContent=S.palms;
+    const cw=document.getElementById("ui-cows"); if (cw) cw.textContent=S.cows.length;
+    document.getElementById("ui-tool").textContent=TOOLS[S.tool].name+(S.bibit?(" · bibit "+S.bibit):"");
+  }
+  let tab="alat";
+  function buyTool(id){
+    const t=TOOLS[id];
+    if (S.owned[id]){ S.tool=id; paintHud(); renderShop(); save(); return; }
+    if (S.money<t.price) return toast("Uang belum cukup");
+    S.money-=t.price; S.owned[id]=true; S.tool=id; haptic(12);
+    toast(t.name+" dibeli"); beep(720,.12,"square",.05);
+    paintHud(); renderShop(); save();
+  }
+  function buyCow(){
+    if (S.cows.length>=COW_MAX) return toast("Kandang penuh (maks "+COW_MAX+" sapi)");
+    if (S.money<COW_PRICE) return toast("Uang belum cukup");
+    let spot=null;
+    for (let i=0;i<80&&!spot;i++){
+      const x=clamp(Math.floor(BARN.x+(Math.random()-.5)*6),1,COLS-2);
+      const y=clamp(Math.floor(BARN.y+(Math.random()-.5)*6),1,ROWS-2);
+      const t=tileAt(x,y);
+      if (t&&(t.type==="grass"||t.type==="dirt")&&!t.blocked &&
+          !S.cows.some(c=>Math.hypot(c.x-(x+0.5),c.y-(y+0.5))<1.0))
+        spot={x:x+0.5,y:y+0.5};
+    }
+    if (!spot) return toast("Tidak ada tempat kosong untuk sapi");
+    S.money-=COW_PRICE;
+    S.cows.push({x:spot.x,y:spot.y,t:0,dir:Math.random()*TAU,phase:Math.random()*TAU});
+    haptic(12); beep(540,.12,"triangle",.05);
+    toast("Sapi baru masuk kandang 🐄"); paintHud(); renderShop(); save();
+  }
+
+  function buyBibit(n){
+    if (!n || n<1) return;
+    const cost=n*BIBIT_PRICE;
+    if (S.money<cost) return toast("Uang belum cukup");
+    S.money-=cost; S.bibit+=n; haptic(10);
+    toast(n+" bibit dibeli"); beep(600,.1,"triangle",.05);
+    paintHud(); renderShop(); save();
+  }
+  function renderShop(){
+    const list=document.getElementById("shop-list");
+    let html="";
+    if (tab==="alat"){
+      html=ORDER.map(id=>{
+        const t=TOOLS[id], owned=!!S.owned[id], active=S.tool===id;
+        const btn=active?`<button disabled>Dipakai</button>`
+          :owned?`<button class="gold" data-use="${id}">Pakai</button>`
+          :`<button class="gold" data-buy="${id}" ${S.money<t.price?"disabled":""}>Beli</button>`;
+        return `<div class="item"><div class="ic">${t.icon}</div><div class="b">
+          <div class="n">${t.name}${owned?" ✓":""}</div><div class="d">${t.desc}</div>
+          <div class="p">${t.price?rp(t.price):"gratis"}</div></div>${btn}</div>`;
+      }).join("");
+    } else if (tab==="bibit"){
+      html=`<div class="item"><div class="ic">🌱</div><div class="b">
+        <div class="n">Bibit sawit (punya ${S.bibit})</div>
+        <div class="d">Berdiri di tanah kosong → otomatis ditanam. Panen ${rp(HARVEST_VALUE)}.</div>
+        <div class="p">${rp(BIBIT_PRICE)} / bibit</div></div>
+        <button class="gold" data-bibit="1">Beli</button></div>
+        <div class="item"><div class="ic">🌴</div><div class="b">
+        <div class="n">Kebun</div><div class="d">Sawit ditanam ${S.palms} · dipanen ${S.harvested}</div></div></div>`;
+    } else if (tab==="ternak"){
+      const passive = S.cows.length*COW_INCOME*(60/COW_PERIOD);
+      html=`<div class="item"><div class="ic">🐄</div><div class="b">
+        <div class="n">Sapi perah (${S.cows.length}/${COW_MAX})</div>
+        <div class="d">Tiap ${COW_PERIOD} dtk menghasilkan ${rp(COW_INCOME)} otomatis, tanpa ditunggu.</div>
+        <div class="p">${rp(COW_PRICE)} / sapi${S.cows.length?` · pasif ${rp(passive)}/menit`:""}</div></div>
+        <button class="gold" data-cow="1" ${S.money<COW_PRICE||S.cows.length>=COW_MAX?"disabled":""}>Beli</button></div>
+        <div class="item"><div class="ic">🥛</div><div class="b">
+        <div class="n">Total susu terkumpul</div>
+        <div class="d">Sapi jalan sendiri di padang sekitar kamu — uangnya masuk otomatis.</div>
+        <div class="p">${rp(S.cows.length*COW_INCOME)} / putaran</div></div></div>`;
+    } else {
+      html=S.demo?`<div class="item"><div class="ic">📢</div><div class="b">
+        <div class="n">Demo warga</div><div class="d">Menutup ${S.demo.blockers.length} petak · sisa ${Math.ceil(S.demo.timer)} dtk</div>
+        <div class="p">${rp(S.demo.demand)}</div></div>
+        <button class="gold" data-pay="1" ${S.money<S.demo.demand?"disabled":""}>Bayar</button></div>`
+      :`<div class="item"><div class="ic">🤝</div><div class="b">
+        <div class="n">Warga sekitar</div><div class="d">Ganti rugi dibayar ${rp(S.demoPaid)} · demo berikut di ${S.nextDemoAt} pohon</div></div></div>`;
+    }
+    list.innerHTML=html;
+    list.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buyTool(b.dataset.buy));
+    list.querySelectorAll("[data-use]").forEach(b=>b.onclick=()=>buyTool(b.dataset.use));
+    list.querySelectorAll("[data-bibit]").forEach(b=>b.onclick=()=>buyBibit(+b.dataset.bibit));
+    list.querySelectorAll("[data-pay]").forEach(b=>b.onclick=()=>payDemo());
+    list.querySelectorAll("[data-cow]").forEach(b=>b.onclick=()=>buyCow());
+  }
+  const shopEl=document.getElementById("shop");
+  document.getElementById("btn-shop").onclick=()=>{ shopEl.classList.add("open"); renderShop(); };
+  document.getElementById("btn-close").onclick=()=>shopEl.classList.remove("open");
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+    tab=t.dataset.tab;
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===t));
+    renderShop();
+  });
+  document.getElementById("btn-pay").onclick=()=>payDemo();
+  document.getElementById("btn-ignore").onclick=()=>document.getElementById("demo-card").classList.remove("on");
+  document.getElementById("btn-mute").onclick=e=>{
+    S.muted=!S.muted; e.currentTarget.textContent=S.muted?"🔇":"🔊"; save();
+  };
+
+  // ================= loop =================
+  let last=performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-last)/1000); last=now;
+    applyKeys();
+    if (!shopEl.classList.contains("open")) update(dt);
+    render();
+    drawStick();
+    if (S.demo) paintDemo();
+    requestAnimationFrame(frame);
+  }
+
+  // ================= API test =================
+  window.NYAWIT = {
+    get state(){ return S; },
+    tick(seconds){ const st=0.05; for (let i=0;i<seconds/st;i++) update(st); },
+    drive(x,y){ stick.active=true; stick.bx=cam.cssW*0.25; stick.by=cam.cssH*0.72; stick.r=56;
+      stick.x=stick.bx+x*stick.r; stick.y=stick.by+y*stick.r; S.vx=x; S.vy=y; },
+    release(){ stick.active=false; S.vx=0; S.vy=0; },
+    payDemo, buyTool, buyBibit, save,
+    reset(){ S=newState(); save(); paintHud(); renderShop(); paintDemo(); }
+  };
+
+  // ================= boot =================
+  S = load() || newState();
+  if (S.muted) document.getElementById("btn-mute").textContent="🔇";
+  paintHud(); renderShop(); paintDemo();
+  if (!localStorage.getItem(SAVE_KEY)) toast("Geser analog untuk jalan — dekat pohon otomatis menebang", 3200);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
