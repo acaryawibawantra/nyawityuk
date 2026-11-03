@@ -140,6 +140,10 @@
     <div class="panel">
       <h2>Toko & Kebun</h2>
       <p>Tebang hutan → uang → alat, bibit, sapi. Warga akan menyerang — bertahan sambil menanam.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="pill" id="btn-reroll" style="flex:1;padding:11px 8px;font-size:12.5px">Ganti misi</button>
+        <button class="pill" id="btn-restart" style="flex:1;padding:11px 8px;font-size:12.5px;border-color:#e0785f;color:#ffd9cf">Mulai ulang</button>
+      </div>
       <div class="tabs">
         <button class="tab active" data-tab="alat">Alat</button>
         <button class="tab" data-tab="bibit">Bibit</button>
@@ -311,6 +315,7 @@
     const reward=type==="chop"?40+lv*15 : type==="plant"?70+lv*20
                : type==="harvest"?90+lv*22 : 100+lv*25;
     S.quest={type,need,prog:0,reward};
+    if (type==="kill"&&(!S.raiders||S.raiders.length===0)){ setTimeout(()=>{ if(S.quest&&S.quest.type==="kill"&&S.raiders.length===0) startRaid(); }, 1200); }
   }
   function questEvent(type,n=1){
     if (!S.quest){ nextQuest(); return; }
@@ -931,10 +936,14 @@
       ctx.fillStyle="#ffcf4a";
       ctx.beginPath(); ctx.arc(cx+3*s,cy+7*s,4*s,0,TAU); ctx.fill();
       ctx.beginPath(); ctx.arc(cx-5*s,cy+9*s,3.6*s,0,TAU); ctx.fill();
-      const bob=Math.sin(S.t*3)*3*s;
-      ctx.fillStyle="rgba(255,255,255,.9)"; ctx.textAlign="center";
-      ctx.font=`bold ${11*s}px -apple-system,sans-serif`;
-      ctx.fillText("panen",cx,cy-24*s+bob);
+      // label hanya untuk sawit yang benar-benar dekat pemain
+      const near=Math.hypot(x+0.5-S.px,y+0.5-S.py)<3.2;
+      if (near){
+        const bob=Math.sin(S.t*3)*3*s;
+        ctx.fillStyle="rgba(255,255,255,.92)"; ctx.textAlign="center";
+        ctx.font=`bold ${11*s}px -apple-system,sans-serif`;
+        ctx.fillText("panen",cx,cy-24*s+bob);
+      }
     }
   }
 
@@ -1259,7 +1268,10 @@
     const lv=document.getElementById("ui-level"); if (lv) lv.textContent=S.level;
     const w=document.getElementById("ui-weather");
     if (w){ w.textContent=S.weather==="rain"?"Hujan":"Cerah"; w.classList.toggle("rain",S.weather==="rain"); }
-    const am=document.getElementById("ui-ammo"); if (am) am.textContent="Peluru "+S.ammo;
+    const am=document.getElementById("ui-ammo");
+    const amChip=document.getElementById("chip-ammo");
+    if (am){ am.textContent="Peluru "+S.ammo; }
+    if (amChip) amChip.style.display=S.owned.senapan?"":"none";
     const q=document.getElementById("ui-quest");
     if (q){
       if (!S.quest) nextQuest();
@@ -1367,6 +1379,30 @@
   });
   document.getElementById("btn-mute").onclick=e=>{
     S.muted=!S.muted; e.currentTarget.textContent=S.muted?"🔇":"🔊"; save();
+  };
+
+  // ganti misi (kalau misi terasa mustahil)
+  document.getElementById("btn-reroll").onclick=()=>{
+    nextQuest(); paintHud(); renderShop(); save();
+    toast("Misi diganti: "+QUEST_LABEL[S.quest.type]);
+  };
+
+  // mulai ulang (hapus progres) — harus ditekan 2x
+  let restartArmed=false, restartTimer=null;
+  const rb=document.getElementById("btn-restart");
+  rb.onclick=()=>{
+    if (!restartArmed){
+      restartArmed=true; rb.textContent="Tekan lagi utk hapus";
+      clearTimeout(restartTimer);
+      restartTimer=setTimeout(()=>{ restartArmed=false; rb.textContent="Mulai ulang"; },4000);
+      return;
+    }
+    clearTimeout(restartTimer); restartArmed=false; rb.textContent="Mulai ulang";
+    try{ localStorage.removeItem(SAVE_KEY); }catch{}
+    S=newState(); shopEl.classList.remove("open");
+    paintHud(); renderShop(); save();
+    toast("Game dimulai ulang — kebun baru 🌱",2400);
+    beep(520,.16,"triangle",.06);
   };
   document.getElementById("btn-respawn").onclick=()=>respawn();
 
