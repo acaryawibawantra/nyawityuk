@@ -32,6 +32,9 @@
   .chip.lv .v{color:#c8b6ff}
   .chip.q{font-size:clamp(9.5px,2.8vw,11.5px);color:#dff0e2}
   .chip.q b{color:#ffd24a}
+  .chip.w{color:#cfe8ff}
+  .chip.w.rain{background:rgba(24,52,80,.92);border-color:#6fb6ff;color:#dcefff}
+  .chip.a{color:#ffd9a8}
   .chip.bump{animation:bump .28s ease}
   @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
 
@@ -117,6 +120,8 @@
       <div class="chip p">Sawit <span class="v" id="ui-palms">0</span></div>
       <div class="chip c">Sapi <span class="v" id="ui-cows">0</span></div>
       <div class="chip q"><span id="ui-quest">Misi…</span></div>
+      <div class="chip w" id="ui-weather">Cerah</div>
+      <div class="chip a" id="chip-ammo"><span id="ui-ammo">Peluru 0</span></div>
     </div>
     <div style="pointer-events:auto"><button class="pill" id="btn-mute" style="padding:9px 12px">🔊</button></div>
   </div>
@@ -159,17 +164,19 @@
 (() => {
   "use strict";
   // ================= dunia =================
-  const COLS = 22, ROWS = 22;
+  const COLS = 34, ROWS = 34;
   const TW = 68, TH = 34;
-  const SAVE_KEY = "nyawityuk.v4";
+  const SAVE_KEY = "nyawityuk.v5";
 
   const TOOLS = {
     kapak:    { name:"Kapak",    icon:"🪓", dmg:2, price:0,   use:0,  swing:0.18, desc:"Alat awal · 1 ayunan per pohon" },
     pemotong: { name:"Pemotong", icon:"🪚", dmg:5, price:120, use:0,  swing:0.11, desc:"Chainsaw · ayunan super cepat" },
     api:      { name:"Api",      icon:"🔥", dmg:6, price:280, use:8,  swing:0.26, desc:"Bakar 3×3 petak · Rp8/pakai" },
     traktor:  { name:"Traktor",  icon:"🚜", dmg:9, price:700, use:20, swing:0.16, desc:"Bersihkan 3×3 instan · Rp20/pakai" },
+    senapan:  { name:"Senapan",  icon:"🔫", dmg:0, price:900, use:0,  swing:0.1, desc:"Tembak warga otomatis · 45 dmg · butuh peluru" },
   };
-  const ORDER = ["kapak","pemotong","api","traktor"];
+  const ORDER = ["kapak","pemotong","api","traktor","senapan"];
+  const AMMO_PRICE = 45, AMMO_PACK = 12, GUN_DMG = 45, GUN_RANGE = 4.0, GUN_CD = 0.75;
   const TREE_VALUE = 10, BIBIT_PRICE = 25, HARVEST_VALUE = 60, GROW_FULL = 14, FACTORY_PRICE = 1500;
   const REACH = 1.75;
   const COW_PRICE = 320, COW_INCOME = 14, COW_PERIOD = 5, COW_MAX = 8;
@@ -202,14 +209,16 @@
       }
       t.push(r);
     }
-    for (let y = 10; y <= 12; y++) for (let x = 10; x <= 13; x++)
+    // lapangan awal
+    for (let y = 15; y <= 17; y++) for (let x = 15; x <= 18; x++)
       t[y][x] = { type:"dirt", hp:0, grow:0, blocked:0 };
     // pekarangan kandang sapi
-    for (let y = 6; y <= 10; y++) for (let x = 6; x <= 10; x++)
+    for (let y = 11; y <= 15; y++) for (let x = 11; x <= 15; x++)
       t[y][x] = { type:"dirt", hp:0, grow:0, blocked:0 };
-    for (let y = 15; y <= 17; y++) for (let x = 4; x <= 7; x++)
+    // kolam
+    for (let y = 22; y <= 24; y++) for (let x = 4; x <= 7; x++)
       t[y][x] = { type:"water", hp:0, grow:0, blocked:0 };
-    for (let y = 5; y <= 7; y++) for (let x = 16; x <= 18; x++)
+    for (let y = 5; y <= 7; y++) for (let x = 24; x <= 26; x++)
       t[y][x] = { type:"water", hp:0, grow:0, blocked:0 };
     return t;
   }
@@ -218,10 +227,11 @@
     return {
       tiles: makeTiles(), money: 0, chopped: 0, palms: 0, harvested: 0, cows: [],
       bibit: 0, tool: "kapak", owned: { kapak:true }, factory:false,
-      px: 11.5, py: 11.5, vx: 0, vy: 0, facing: "down", walk: 0, swing: 0,
-      camX: 11.5, camY: 11.5, muted: false, t: 0,
+      px: 16.5, py: 16.5, vx: 0, vy: 0, facing: "down", walk: 0, swing: 0,
+      camX: 16.5, camY: 16.5, muted: false, t: 0,
       hp: PLAYER_HP, hpRegenDelay: 0, invuln: 0, dead: false,
       xp: 0, level: 1, combo: 0, comboT: 0, quest: null,
+      weather:"clear", weatherT: 30+Math.random()*15, rain:0, ammo:0, pest:0, disasters:0,
       raiders: [], wave: 0, nextRaidAt: RAID_EVERY, kills: 0,
       hurtFlash: 0, shake: 0, plantTimer: 0, swingCd: 0
     };
@@ -234,7 +244,7 @@
         tiles:S.tiles, money:S.money, chopped:S.chopped, palms:S.palms, harvested:S.harvested,
         cows:S.cows, bibit:S.bibit, tool:S.tool, owned:S.owned, px:S.px, py:S.py,
         facing:S.facing, muted:S.muted, wave:S.wave, kills:S.kills, nextRaidAt:S.nextRaidAt,
-        xp:S.xp, level:S.level, quest:S.quest, factory:S.factory
+        xp:S.xp, level:S.level, quest:S.quest, factory:S.factory, ammo:S.ammo, disasters:S.disasters
       }));
     }catch{}
   }
@@ -320,6 +330,73 @@
   function comboMult(){ return 1+Math.min(S.combo,10)*0.1; }
   function comboAdd(){ S.combo++; S.comboT=2.6; }
 
+  // ================= cuaca, hutan tumbuh, bencana alam =================
+  function startRain(){
+    S.weather="rain"; S.weatherT=16+Math.random()*10; S.rain=0;
+    banner("Hujan turun — hutan mulai tumbuh lagi");
+    beep(300,.25,"sine",.04); paintHud();
+    maybeDisaster();
+  }
+  function endRain(){
+    S.weather="clear"; S.weatherT=30+Math.random()*20;
+    banner("Hujan reda — hutan berhenti tumbuh"); paintHud();
+  }
+  function maybeDisaster(){
+    const palms=S.tiles.flat().filter(t=>t.type==="palm").length;
+    const roll=Math.random();
+    if (roll<0.45&&palms>2){
+      const n=Math.min(palms-1,2+Math.floor(S.level/2)+Math.floor(Math.random()*3));
+      let d=0;
+      for (let y=0;y<ROWS&&d<n;y++) for (let x=0;x<COLS&&d<n;x++){
+        const t=S.tiles[y][x];
+        if (t.type==="palm"&&Math.random()<0.10){
+          t.type="dirt"; t.grow=0; S.palms=Math.max(0,S.palms-1); d++;
+          spawn(x,y,"#9fd6ff",7);
+        }
+      }
+      if (d>0){
+        S.disasters++; S.shake=0.6;
+        banner("BENCANA: badai — "+d+" sawit tumbang!");
+        beep(90,.4,"sawtooth",.07); haptic(60);
+        toast("Badai merusak kebunmu",2200);
+        return;
+      }
+    }
+    if (roll<0.72&&S.cows.length){
+      S.pest=14; S.disasters++;
+      banner("BENCANA: hama — sapi berhenti produksi 14 dtk");
+      beep(140,.3,"sawtooth",.05);
+      return;
+    }
+    S.disasters++; S.shake=0.35;
+    banner("Angin kencang melanda kebun");
+  }
+  function rainRegrow(dt){
+    S.rain+=dt;
+    if (S.rain<0.5) return;
+    S.rain=0;
+    for (let i=0;i<50;i++){
+      const x=clamp(Math.floor(S.px+(Math.random()-.5)*24),1,COLS-2);
+      const y=clamp(Math.floor(S.py+(Math.random()-.5)*24),1,ROWS-2);
+      const t=S.tiles[y][x];
+      if (t&&(t.type==="grass"||t.type==="wheat")){
+        t.type="tree"; t.hp=2;
+        spawn(x,y,"#7fd08c",5,0.7);
+        break;
+      }
+    }
+  }
+  function killRaider(r){
+    S.raiders=S.raiders.filter(o=>o!==r);
+    S.kills++; S.money+=25; xpGain(5); questEvent("kill",1);
+    floatText(r.x-.5,r.y-.5,"+25","#ffd0a3");
+    spawn(r.x-.5,r.y-.5,"#e08a6f",10);
+    if (S.raiders.length===0){
+      S.money+=60; banner("Gelombang "+S.wave+" dihantui · +"+rp(60));
+      paintHud();
+    }
+  }
+
   // ================= kamera =================
   let cam={ scale:1, ox:0, oy:0, cssW:0, cssH:0, dpr:1 };
   const isoX=(x,y)=>(x-y)*TW/2, isoY=(x,y)=>(x+y)*TH/2;
@@ -398,17 +475,27 @@
     }
     if (tool.use&&S.money<tool.use){ toast("Uang kurang untuk "+tool.name); return; }
     if (tool.use) S.money-=tool.use;
+    if (S.tool==="api"&&S.raiders.length){
+      for (const r of S.raiders.slice()){
+        if (Math.hypot(r.x-S.px,r.y-S.py)<=2.0){
+          r.hp-=30; r.hurt=1;
+          spawn(r.x-.5,r.y-.5,"#ff9a4a",10,1.2);
+          if (r.hp<=0) killRaider(r);
+        }
+      }
+    }
 
+    const dmg=(S.tool==="senapan")?2:tool.dmg;
     const area=(S.tool==="api"||S.tool==="traktor")?1:0;
     let fell=0;
     for (let yy=y-area;yy<=y+area;yy++) for (let xx=x-area;xx<=x+area;xx++){
       const tt=tileAt(xx,yy);
       if (!tt||tt.type!=="tree") continue;
-      tt.hp-=tool.dmg;
+      tt.hp-=dmg;
       if (tt.hp<=0){ tt.type="dirt"; tt.hp=0; tt.grow=0; fell++; spawn(xx,yy,"#7fd08c",9,1.3); }
     }
     if (fell===0&&area===0){
-      t.hp-=tool.dmg;
+      t.hp-=dmg;
       if (t.hp<=0){ t.type="dirt"; t.hp=0; fell=1; spawn(x,y,"#7fd08c",9); }
       else spawn(x,y,"#c9a36a",4);
     }
@@ -487,7 +574,7 @@
   }
   function respawn(){
     S.dead=false; S.hp=PLAYER_HP; S.invuln=2.5; S.raiders=[]; S.shake=0;
-    S.px=11.5; S.py=11.5; S.camX=11.5; S.camY=11.5;
+    S.px=16.5; S.py=16.5; S.camX=16.5; S.camY=16.5;
     document.getElementById("dead").classList.remove("on");
     document.getElementById("vitals").classList.remove("on");
     toast("Bangkit lagi — tanam sawit sambil bertahan 🌱", 2400);
@@ -520,6 +607,10 @@
     S.t+=dt;
     S.invuln=Math.max(0,S.invuln-dt);
     if (S.comboT>0){ S.comboT-=dt; if (S.comboT<=0) S.combo=0; }
+    S.pest=Math.max(0,S.pest-dt);
+    S.weatherT-=dt;
+    if (S.weatherT<=0){ S.weather==="clear" ? startRain() : endRain(); }
+    if (S.weather==="rain") rainRegrow(dt);
     S.hurtFlash=Math.max(0,S.hurtFlash-dt*2.6);
     S.shake=Math.max(0,S.shake-dt*2.4);
 
@@ -543,6 +634,26 @@
       // otomatis menebang / memukul warga
       S.swing=Math.max(0,S.swing-dt*3.6);
       S.swingCd-=dt;
+      S.gunCd=Math.max(0,(S.gunCd||0)-dt);
+
+      // senjata api: tembak warga terjauh dalam jangkauan
+      if (S.tool==="senapan"&&S.ammo>0&&S.raiders.length){
+        let tgt=null;
+        for (const r of S.raiders){
+          const d=Math.hypot(r.x-S.px,r.y-S.py);
+          if (d<=GUN_RANGE&&(!tgt||d<tgt.d)) tgt={r,d};
+        }
+        if (tgt&&S.gunCd<=0){
+          S.gunCd=GUN_CD; S.ammo--; S.swing=1;
+          faceTo(tgt.r.x,tgt.r.y);
+          tgt.r.hp-=GUN_DMG; tgt.r.hurt=1;
+          spawn(tgt.r.x-.5,tgt.r.y-.5,"#ffe27a",7,1.2);
+          floatText(tgt.r.x-.5,tgt.r.y-.5,"-"+GUN_DMG,"#ffd24a");
+          beep(720,.05,"square",.07); haptic(8);
+          if (tgt.r.hp<=0) killRaider(tgt.r);
+          paintHud();
+        }
+      }
       const nearRaiders=raidersNear();
       const tg=targetNear();
       if (nearRaiders.length){
@@ -556,16 +667,7 @@
             r.x=clamp(r.x+Math.cos(ang)*0.45,1,COLS-2);
             r.y=clamp(r.y+Math.sin(ang)*0.45,1,ROWS-2);
             beep(420,.07,"square",.05); haptic(14);
-            if (r.hp<=0){
-              S.raiders=S.raiders.filter(o=>o!==r);
-              S.kills++; S.money+=25; xpGain(5); questEvent("kill",1);
-              floatText(r.x-.5,r.y-.5,"+25","#ffd0a3");
-              spawn(r.x-.5,r.y-.5,"#e08a6f",10);
-            }
-          }
-          if (S.raiders.length===0){
-            banner("Gelombang "+S.wave+" berhasil dihan­tui · +"+rp(60));
-            S.money+=60; paintHud();
+            if (r.hp<=0) killRaider(r);
           }
         }
       } else if (tg){
@@ -633,9 +735,9 @@
     for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
       const t=S.tiles[y][x];
       if (t.type==="sapling"){
-        t.grow+=dt;
+        t.grow+=dt*(S.weather==="rain"?1.8:1);
         if (t.grow>=GROW_FULL){ t.type="palm"; t.grow=GROW_FULL; S.palms++; save(); }
-      } else if (t.type==="palm"&&t.grow<GROW_FULL) t.grow+=dt;
+      } else if (t.type==="palm"&&t.grow<GROW_FULL) t.grow+=dt*(S.weather==="rain"?1.6:1);
     }
 
     // sapi
@@ -647,7 +749,9 @@
       if (tt&&(tt.type==="grass"||tt.type==="dirt")&&!tt.blocked){ c.x=nx; c.y=ny; }
       else c.dir+=2.2;
       if (c.t>=COW_PERIOD){
-        c.t=0; S.money+=COW_INCOME;
+        c.t=0;
+        if (S.pest>0) continue;
+        S.money+=COW_INCOME;
         floatText(c.x-0.5,c.y-0.5,"+"+COW_INCOME,"#ffe9a8");
         paintHud();
       }
@@ -684,21 +788,22 @@
     const s=cam.scale;
 
     // hutan pinggiran (di luar peta) supaya tepi tidak terlihat kosong
-    for (let y=-9;y<ROWS+9;y++) for (let x=-9;x<COLS+9;x++){
+    for (let y=-5;y<ROWS+5;y++) for (let x=-5;x<COLS+5;x++){
       if (x>=0&&y>=0&&x<COLS&&y<ROWS) continue;
       const p=toScreen(x,y);
       if (p.x<-TW*s||p.x>cam.cssW+TW*s||p.y<-TH*s||p.y>cam.cssH+TH*s) continue;
-      diamond(x,y, "#2a5f36");
+      diamond(x,y, "#26532f");
       const h=hash(x+997,y+313);
-      if (h%2===0){
-        ctx.globalAlpha=.55; ctx.fillStyle="#1d4227";
-        ctx.beginPath(); ctx.arc(p.x,p.y-14*s,10*s,0,TAU); ctx.fill();
-        ctx.globalAlpha=.4; ctx.fillStyle="#163a1f";
-        ctx.beginPath(); ctx.arc(p.x+5*s,p.y-19*s,7.5*s,0,TAU); ctx.fill();
-        ctx.globalAlpha=.3; ctx.fillStyle="#12301a";
-        ctx.beginPath(); ctx.arc(p.x-6*s,p.y-11*s,6*s,0,TAU); ctx.fill();
-        ctx.globalAlpha=1;
-      }
+      // hutan rapat di luar peta (dinding dedaunan gelap)
+      const rad=(9+(h%5))*s;
+      ctx.globalAlpha=.95;
+      ctx.fillStyle="#1c4527";
+      ctx.beginPath(); ctx.ellipse(p.x,p.y-8*s,rad,rad*0.78,0,0,TAU); ctx.fill();
+      ctx.globalAlpha=.6; ctx.fillStyle="#17391f";
+      ctx.beginPath(); ctx.arc(p.x+rad*0.35,p.y-14*s,rad*0.62,0,TAU); ctx.fill();
+      ctx.globalAlpha=.45; ctx.fillStyle="#122f19";
+      ctx.beginPath(); ctx.arc(p.x-rad*0.4,p.y-6*s,rad*0.5,0,TAU); ctx.fill();
+      ctx.globalAlpha=1;
     }
 
     for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++){
@@ -833,7 +938,7 @@
     }
   }
 
-  const BARN={x:8,y:8};
+  const BARN={x:13,y:13};
   function drawFences(){
     const s=cam.scale, pts=[];
     for (let x=5;x<=11;x++){ pts.push([x,5]); pts.push([x,11]); }
@@ -1000,7 +1105,7 @@
     ctx.clearRect(0,0,cam.cssW,cam.cssH);
 
     const sky=ctx.createLinearGradient(0,0,0,cam.cssH);
-    sky.addColorStop(0,"#8fd48f"); sky.addColorStop(.55,"#5fb863"); sky.addColorStop(1,"#3f8f4e");
+    sky.addColorStop(0,"#315f3a"); sky.addColorStop(.55,"#2b5634"); sky.addColorStop(1,"#234a2c");
     ctx.fillStyle=sky; ctx.fillRect(0,0,cam.cssW,cam.cssH);
 
     drawGround();
@@ -1046,6 +1151,22 @@
       ctx.fillStyle=f.color; ctx.fillText(f.text,sp.x,sp.y-f.z*s);
     }
     ctx.globalAlpha=1;
+
+    // hujan
+    if (S.weather==="rain"){
+      ctx.fillStyle="rgba(26,52,80,.30)";
+      ctx.fillRect(0,0,cam.cssW,cam.cssH);
+      ctx.strokeStyle="rgba(200,232,255,.55)"; ctx.lineWidth=1.4;
+      for (let i=0;i<80;i++){
+        const yy=((S.t*620+i*97)%(cam.cssH+40))-20;
+        const xx=((i*151)%cam.cssW+Math.sin(S.t*2+i)*8);
+        ctx.beginPath(); ctx.moveTo(xx,yy); ctx.lineTo(xx-5,yy+15); ctx.stroke();
+      }
+      // kilat sesekali
+      if (Math.sin(S.t*3.1)>0.996){
+        ctx.fillStyle="rgba(255,255,255,.35)"; ctx.fillRect(0,0,cam.cssW,cam.cssH);
+      }
+    }
 
     // kilatan merah saat kena serang
     if (S.hurtFlash>0){
@@ -1136,6 +1257,9 @@
     document.getElementById("ui-palms").textContent=S.palms;
     document.getElementById("ui-cows").textContent=S.cows.length;
     const lv=document.getElementById("ui-level"); if (lv) lv.textContent=S.level;
+    const w=document.getElementById("ui-weather");
+    if (w){ w.textContent=S.weather==="rain"?"Hujan":"Cerah"; w.classList.toggle("rain",S.weather==="rain"); }
+    const am=document.getElementById("ui-ammo"); if (am) am.textContent="Peluru "+S.ammo;
     const q=document.getElementById("ui-quest");
     if (q){
       if (!S.quest) nextQuest();
@@ -1177,6 +1301,11 @@
           <div class="n">${t.name}${owned?" ✓":""}</div><div class="d">${t.desc}</div>
           <div class="p">${t.price?rp(t.price):"gratis"}</div></div>${btn}</div>`;
       }).join("");
+      html+=`<div class="item"><div class="ic">🧨</div><div class="b">
+        <div class="n">Peluru (punya ${S.ammo})</div>
+        <div class="d">Untuk senapan: ${AMMO_PACK} butir · 45 dmg per tembakan.</div>
+        <div class="p">${rp(AMMO_PRICE)} / ${AMMO_PACK} butir</div></div>
+        <button class="gold" data-ammo="1" ${S.money<AMMO_PRICE?"disabled":""}>Beli</button></div>`;
     } else if (tab==="bibit"){
       html=`<div class="item"><div class="ic">🌱</div><div class="b">
         <div class="n">Bibit sawit (punya ${S.bibit})</div>
@@ -1214,6 +1343,12 @@
     list.querySelectorAll("[data-use]").forEach(b=>b.onclick=()=>buyTool(b.dataset.use));
     list.querySelectorAll("[data-bibit]").forEach(b=>b.onclick=()=>buyBibit(+b.dataset.bibit));
     list.querySelectorAll("[data-cow]").forEach(b=>b.onclick=()=>buyCow());
+    list.querySelectorAll("[data-ammo]").forEach(b=>b.onclick=()=>{
+      if (S.money<AMMO_PRICE) return toast("Uang belum cukup");
+      S.money-=AMMO_PRICE; S.ammo+=AMMO_PACK; haptic(10);
+      toast(AMMO_PACK+" peluru dibeli"); beep(660,.08,"square",.05);
+      paintHud(); renderShop(); save();
+    });
     list.querySelectorAll("[data-factory]").forEach(b=>b.onclick=()=>{
       if (S.factory) return;
       if (S.money<FACTORY_PRICE) return toast("Uang belum cukup");
