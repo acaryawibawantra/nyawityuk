@@ -21,7 +21,7 @@
   .top{position:absolute;top:0;left:0;right:0;z-index:6;pointer-events:none;
     padding:calc(8px + env(safe-area-inset-top)) 10px 0;
     display:flex;gap:6px;align-items:flex-start;justify-content:space-between}
-  .chips{display:flex;gap:5px;flex-wrap:wrap;max-width:78vw}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;max-width:76vw;row-gap:5px}
   .chip{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
     border-radius:999px;padding:6px 10px;font-size:clamp(10.5px,3vw,12.5px);font-weight:700;
     backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(0,0,0,.18)}
@@ -29,11 +29,14 @@
   .chip.t .v{color:#b9f0c4}
   .chip.p .v{color:#9fe6ff}
   .chip.c .v{color:#ffe0a3}
+  .chip.lv .v{color:#c8b6ff}
+  .chip.q{font-size:clamp(9.5px,2.8vw,11.5px);color:#dff0e2}
+  .chip.q b{color:#ffd24a}
   .chip.bump{animation:bump .28s ease}
   @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
 
   /* HP + wave */
-  .vitals{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);
+  .vitals{position:absolute;left:50%;top:calc(94px + env(safe-area-inset-top));transform:translateX(-50%);
     z-index:7;display:flex;align-items:center;gap:8px;pointer-events:none;
     background:var(--panel);border:1px solid var(--line);border-radius:999px;
     padding:6px 12px 6px 8px;backdrop-filter:blur(10px);opacity:0;transition:opacity .25s}
@@ -45,7 +48,7 @@
   .vitals .wv{font-size:11.5px;font-weight:800;color:#ffd9d3;white-space:nowrap}
 
   /* raid banner */
-  .banner{position:absolute;left:50%;top:calc(96px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-8px);
+  .banner{position:absolute;left:50%;top:calc(134px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-8px);
     z-index:9;background:rgba(58,14,10,.94);border:1px solid #ff7a63;border-radius:14px;
     padding:9px 14px;font-size:12.5px;font-weight:800;color:#ffd7cd;white-space:nowrap;
     opacity:0;transition:.25s;pointer-events:none;box-shadow:0 10px 26px rgba(0,0,0,.35)}
@@ -109,9 +112,11 @@
   <div class="top">
     <div class="chips">
       <div class="chip">Rp <span class="v" id="ui-money">0</span></div>
+      <div class="chip lv">LV <span class="v" id="ui-level">1</span></div>
       <div class="chip t">Tebang <span class="v" id="ui-chopped">0</span></div>
       <div class="chip p">Sawit <span class="v" id="ui-palms">0</span></div>
       <div class="chip c">Sapi <span class="v" id="ui-cows">0</span></div>
+      <div class="chip q"><span id="ui-quest">Misi…</span></div>
     </div>
     <div style="pointer-events:auto"><button class="pill" id="btn-mute" style="padding:9px 12px">🔊</button></div>
   </div>
@@ -165,7 +170,7 @@
     traktor:  { name:"Traktor",  icon:"🚜", dmg:9, price:700, use:20, swing:0.16, desc:"Bersihkan 3×3 instan · Rp20/pakai" },
   };
   const ORDER = ["kapak","pemotong","api","traktor"];
-  const TREE_VALUE = 10, BIBIT_PRICE = 25, HARVEST_VALUE = 60, GROW_FULL = 14;
+  const TREE_VALUE = 10, BIBIT_PRICE = 25, HARVEST_VALUE = 60, GROW_FULL = 14, FACTORY_PRICE = 1500;
   const REACH = 1.75;
   const COW_PRICE = 320, COW_INCOME = 14, COW_PERIOD = 5, COW_MAX = 8;
 
@@ -199,6 +204,9 @@
     }
     for (let y = 10; y <= 12; y++) for (let x = 10; x <= 13; x++)
       t[y][x] = { type:"dirt", hp:0, grow:0, blocked:0 };
+    // pekarangan kandang sapi
+    for (let y = 6; y <= 10; y++) for (let x = 6; x <= 10; x++)
+      t[y][x] = { type:"dirt", hp:0, grow:0, blocked:0 };
     for (let y = 15; y <= 17; y++) for (let x = 4; x <= 7; x++)
       t[y][x] = { type:"water", hp:0, grow:0, blocked:0 };
     for (let y = 5; y <= 7; y++) for (let x = 16; x <= 18; x++)
@@ -209,10 +217,11 @@
   function newState(){
     return {
       tiles: makeTiles(), money: 0, chopped: 0, palms: 0, harvested: 0, cows: [],
-      bibit: 0, tool: "kapak", owned: { kapak:true },
+      bibit: 0, tool: "kapak", owned: { kapak:true }, factory:false,
       px: 11.5, py: 11.5, vx: 0, vy: 0, facing: "down", walk: 0, swing: 0,
       camX: 11.5, camY: 11.5, muted: false, t: 0,
       hp: PLAYER_HP, hpRegenDelay: 0, invuln: 0, dead: false,
+      xp: 0, level: 1, combo: 0, comboT: 0, quest: null,
       raiders: [], wave: 0, nextRaidAt: RAID_EVERY, kills: 0,
       hurtFlash: 0, shake: 0, plantTimer: 0, swingCd: 0
     };
@@ -224,7 +233,8 @@
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         tiles:S.tiles, money:S.money, chopped:S.chopped, palms:S.palms, harvested:S.harvested,
         cows:S.cows, bibit:S.bibit, tool:S.tool, owned:S.owned, px:S.px, py:S.py,
-        facing:S.facing, muted:S.muted, wave:S.wave, kills:S.kills, nextRaidAt:S.nextRaidAt
+        facing:S.facing, muted:S.muted, wave:S.wave, kills:S.kills, nextRaidAt:S.nextRaidAt,
+        xp:S.xp, level:S.level, quest:S.quest, factory:S.factory
       }));
     }catch{}
   }
@@ -243,6 +253,7 @@
   const tileAt=(x,y)=>(x<0||y<0||x>=COLS||y>=ROWS)?null:S.tiles[y][x];
   const isSolid=t=>t&&(t.type==="tree"||t.type==="palm"||t.type==="water");
   const rp=n=>"Rp"+Math.round(n).toLocaleString("id-ID");
+  const harvestValue=()=>S.factory?HARVEST_VALUE*2:HARVEST_VALUE;
   const hash=(x,y)=>{ let h=x*374761393+y*668265263; h=(h^(h>>13))*1274126177; return (h^(h>>16))>>>0; };
 
   function haptic(ms=10){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch{} }
@@ -266,6 +277,48 @@
       o.stop(actx.currentTime+dur);
     }catch{}
   }
+
+  // ================= progres: XP, level, misi, combo =================
+  function xpNeed(){ return 60+(S.level-1)*45; }
+  function xpGain(n){
+    S.xp+=n;
+    let need=xpNeed();
+    while (S.xp>=need){
+      S.xp-=need; S.level++;
+      const bonus=50*S.level;
+      S.money+=bonus;
+      banner("Naik level "+S.level+"! +"+rp(bonus));
+      beep(920,.18,"triangle",.07); haptic(30);
+      spawn(S.px,S.py,"#ffe27a",16,1.4);
+      need=xpNeed();
+    }
+  }
+  function nextQuest(){
+    const lv=S.level, pool=["chop","plant","harvest","kill"];
+    const type=pool[Math.floor(Math.random()*pool.length)];
+    const need=type==="chop"?12+lv*4 : type==="plant"?3+Math.floor(lv/2)
+             : type==="harvest"?2+Math.floor(lv/2) : 1+Math.floor(lv/3);
+    const reward=type==="chop"?40+lv*15 : type==="plant"?70+lv*20
+               : type==="harvest"?90+lv*22 : 100+lv*25;
+    S.quest={type,need,prog:0,reward};
+  }
+  function questEvent(type,n=1){
+    if (!S.quest){ nextQuest(); return; }
+    if (S.quest.type!==type) return;
+    S.quest.prog+=n;
+    if (S.quest.prog>=S.quest.need){
+      const r=S.quest.reward;
+      S.money+=r; xpGain(8);
+      toast("Misi selesai! +"+rp(r));
+      beep(880,.15,"triangle",.06); haptic(22);
+      spawn(S.px,S.py,"#ffe27a",12,1.2);
+      nextQuest();
+    }
+    paintHud();
+  }
+  const QUEST_LABEL={chop:"tebang",plant:"tanam sawit",harvest:"panen sawit",kill:"hadang warga"};
+  function comboMult(){ return 1+Math.min(S.combo,10)*0.1; }
+  function comboAdd(){ S.combo++; S.comboT=2.6; }
 
   // ================= kamera =================
   let cam={ scale:1, ox:0, oy:0, cssW:0, cssH:0, dpr:1 };
@@ -333,10 +386,12 @@
 
     if (t.type==="palm"){
       if (t.grow>=GROW_FULL){
-        S.money+=HARVEST_VALUE; S.harvested++;
+        const earn=Math.round(harvestValue()*comboMult());
+        S.money+=earn; S.harvested++;
         t.grow=GROW_FULL*0.45;
-        floatText(x,y,"+"+HARVEST_VALUE,"#9fe6ff");
+        floatText(x,y,"+"+earn,"#9fe6ff");
         spawn(x,y,"#9fe6ff",10); beep(880,.12,"triangle",.06); haptic(16);
+        comboAdd(); xpGain(6); questEvent("harvest");
         paintHud(); save();
       }
       return;
@@ -358,9 +413,11 @@
       else spawn(x,y,"#c9a36a",4);
     }
     if (fell>0){
-      const earn=fell*TREE_VALUE;
+      const earn=Math.round(fell*TREE_VALUE*comboMult());
       S.money+=earn; S.chopped+=fell;
+      comboAdd(); xpGain(fell*2); questEvent("chop",fell);
       floatText(x,y,"+"+earn,"#eaffb0");
+      if (comboMult()>1.05) floatText(x,y-0.6,"x"+comboMult().toFixed(1),"#ffd24a");
       beep(260+Math.random()*70,.07,"square",.05); haptic(fell>1?20:12);
       if (fell>1) toast(fell+" pohon tumbang · "+rp(earn),1300);
       maybeRaid(); paintHud(); save();
@@ -371,10 +428,12 @@
     if (S.bibit<=0) return;
     const x=Math.floor(S.px), y=Math.floor(S.py);
     const t=tileAt(x,y);
-    if (!t||t.type!=="dirt"||t.blocked) return;
+    if (!t||t.blocked) return;
+    if (t.type==="tree"||t.type==="palm"||t.type==="water"||t.type==="sapling") return;
     t.type="sapling"; t.grow=0.001; S.bibit--; haptic(8);
     beep(520,.1,"triangle",.05);
-    spawn(x,y,"#8fe6a0",6,0.8); paintHud(); save();
+    spawn(x,y,"#8fe6a0",7,0.9);
+    xpGain(2); questEvent("plant",1); paintHud(); save();
   }
 
   // ================= gelombang warga =================
@@ -460,6 +519,7 @@
   function update(dt){
     S.t+=dt;
     S.invuln=Math.max(0,S.invuln-dt);
+    if (S.comboT>0){ S.comboT-=dt; if (S.comboT<=0) S.combo=0; }
     S.hurtFlash=Math.max(0,S.hurtFlash-dt*2.6);
     S.shake=Math.max(0,S.shake-dt*2.4);
 
@@ -498,7 +558,7 @@
             beep(420,.07,"square",.05); haptic(14);
             if (r.hp<=0){
               S.raiders=S.raiders.filter(o=>o!==r);
-              S.kills++; S.money+=25;
+              S.kills++; S.money+=25; xpGain(5); questEvent("kill",1);
               floatText(r.x-.5,r.y-.5,"+25","#ffd0a3");
               spawn(r.x-.5,r.y-.5,"#e08a6f",10);
             }
@@ -513,8 +573,13 @@
         if (S.swingCd<=0){ S.swingCd=TOOLS[S.tool].swing; swingAt(tg); }
       } else {
         S.swingCd=0;
+      }
+
+      // auto-tanam: berlaku di tanah apa pun (rumput/tanah/gandum) selama bukan pohon
+      {
         const here=tileAt(Math.floor(S.px),Math.floor(S.py));
-        if (here&&here.type==="dirt"&&S.bibit>0&&mag<=0.12){
+        const plantable=here&&(here.type==="dirt"||here.type==="grass"||here.type==="wheat")&&!here.blocked;
+        if (plantable&&S.bibit>0&&mag<=0.12){
           S.plantTimer+=dt;
           if (S.plantTimer>0.16){ S.plantTimer=0; maybePlant(); }
         } else S.plantTimer=0;
@@ -769,6 +834,19 @@
   }
 
   const BARN={x:8,y:8};
+  function drawFences(){
+    const s=cam.scale, pts=[];
+    for (let x=5;x<=11;x++){ pts.push([x,5]); pts.push([x,11]); }
+    for (let y=6;y<=10;y++){ pts.push([5,y]); pts.push([11,y]); }
+    for (const [x,y] of pts){
+      const p=toScreen(x,y);
+      ctx.fillStyle="#d9c6a5";
+      ctx.fillRect(p.x-1.6*s, p.y-13*s, 3.2*s, 13*s);
+      ctx.fillStyle="#efdfc1";
+      ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 2.2*s, 0, TAU); ctx.fill();
+
+    }
+  }
   function drawBarn(x,y){
     const p=toScreen(x,y), s=cam.scale;
     shadow(x,y,32,13,0.24);
@@ -1057,6 +1135,13 @@
     document.getElementById("ui-chopped").textContent=S.chopped;
     document.getElementById("ui-palms").textContent=S.palms;
     document.getElementById("ui-cows").textContent=S.cows.length;
+    const lv=document.getElementById("ui-level"); if (lv) lv.textContent=S.level;
+    const q=document.getElementById("ui-quest");
+    if (q){
+      if (!S.quest) nextQuest();
+      const label=QUEST_LABEL[S.quest.type]||S.quest.type;
+      q.innerHTML="Misi: "+label+" <b>"+Math.min(S.quest.prog,S.quest.need)+"/"+S.quest.need+"</b>";
+    }
     const hp=Math.max(0,Math.round(S.hp/PLAYER_HP*100));
     document.getElementById("hpfill").style.width=hp+"%";
     document.getElementById("wave-label").textContent="Gel. "+S.wave;
@@ -1099,7 +1184,12 @@
         <div class="p">${rp(BIBIT_PRICE)} / bibit</div></div>
         <button class="gold" data-bibit="1">Beli</button></div>
         <div class="item"><div class="ic">🌴</div><div class="b">
-        <div class="n">Kebun</div><div class="d">Sawit ditanam ${S.palms} · dipanen ${S.harvested}</div></div></div>`;
+        <div class="n">Kebun</div><div class="d">Sawit ditanam ${S.palms} · dipanen ${S.harvested}</div></div></div>
+        <div class="item"><div class="ic">🏭</div><div class="b">
+        <div class="n">Pabrik CPO ${S.factory?"✓ aktif":""}</div>
+        <div class="d">Mengolah buah sawit jadi CPO — hasil panen jadi <b>${rp(HARVEST_VALUE*2)}</b> per pohon (2×).</div>
+        <div class="p">${S.factory?"sudah dibangun":rp(FACTORY_PRICE)}</div></div>
+        ${S.factory?"":`<button class="gold" data-factory="1" ${S.money<FACTORY_PRICE?"disabled":""}>Bangun</button>`}</div>`;
     } else if (tab==="ternak"){
       const passive=S.cows.length*COW_INCOME*(60/COW_PERIOD);
       html=`<div class="item"><div class="ic">🐄</div><div class="b">
@@ -1124,6 +1214,13 @@
     list.querySelectorAll("[data-use]").forEach(b=>b.onclick=()=>buyTool(b.dataset.use));
     list.querySelectorAll("[data-bibit]").forEach(b=>b.onclick=()=>buyBibit(+b.dataset.bibit));
     list.querySelectorAll("[data-cow]").forEach(b=>b.onclick=()=>buyCow());
+    list.querySelectorAll("[data-factory]").forEach(b=>b.onclick=()=>{
+      if (S.factory) return;
+      if (S.money<FACTORY_PRICE) return toast("Uang belum cukup");
+      S.money-=FACTORY_PRICE; S.factory=true; haptic(25);
+      banner("Pabrik CPO berdiri! Panen jadi 2×");
+      beep(820,.2,"triangle",.07); paintHud(); renderShop(); save();
+    });
   }
   const shopEl=document.getElementById("shop");
   document.getElementById("btn-shop").onclick=()=>{ shopEl.classList.add("open"); renderShop(); };

@@ -1,35 +1,31 @@
 # NyawitYuk 🌴
 
-Game mobile-first isometrik (gaya iklan game/Township): tebang hutan → uang → alat, bibit, sapi →
+Game mobile-first isometrik (gaya iklan game): tebang hutan → uang → alat, bibit, sapi →
 tanam sawit → **bertahan dari serangan warga**.
 
 ## Kontrol
-- **Satu analog**: geser di mana saja di layar. **Tidak ada tombol aksi.**
-- Dekat pohon = otomatis menebang; dekat warga = otomatis memukul.
-- Berdiri diam di tanah kosong dengan bibit = otomatis menanam.
-- Sawit matang di dekatmu = otomatis dipanen.
-- Desktop: WASD / panah.
+- **Satu analog**: geser di mana saja di layar. Tidak ada tombol aksi.
+- Dekat pohon = otomatis menebang · dekat warga = otomatis memukul
+- **Auto-tanam**: punya bibit + berdiri di tanah apa pun (rumput/tanah/ladang) → langsung tertanam
+- Sawit matang di dekatmu = otomatis dipanen · Desktop: WASD/panah
+
+## Progresi
+| Sistem | Detail |
+|---|---|
+| XP & Level | tebang +2, panen +6, warga +5, misi +8. Naik level = bonus Rp50 × level |
+| Misi berantai | tebang / tanam / panen / hadang warga; selesai otomatis dapat hadiah |
+| Combo | tebang/panen beruntun (≤2,6 dtk) → uang ×1,1 per combo, maks ×2 |
+| Pabrik CPO | Rp1.500 → hasil panen sawit jadi Rp120 (2×) |
 
 ## Ekonomi
-| Item | Angka |
-|---|---|
-| 1 pohon | Rp10 |
-| Panen sawit | Rp60 (tumbuh 14 dtk) |
-| Bibit | Rp25 |
-| Pemotong / Api / Traktor | Rp120 / Rp280 / Rp700 |
-| Sapi perah | Rp320 · Rp14 tiap 5 dtk otomatis · maks 8 |
-| Warga tumbang | +Rp25 |
-| Gelombang bersih | +Rp60 |
+1 pohon Rp10 · panen Rp60 (CPO Rp120) · bibit Rp25 (tumbuh 14 dtk) · sapi Rp320 (Rp14/5 dtk, maks 8)
+· pemotong Rp120 · api Rp280 · traktor Rp700 · warga tumbang +Rp25 · gelombang bersih +Rp60
 
-## Pertahanan (menggantikan "bayar demo")
-- Tiap **30 pohon** ditebang → **gelombang warga** menyerbu kebun (1 gelombang = 1+wave orang, maks 5).
-- Warga mengejar (kecepatan 1,95 vs pemain 4,0), menyangkut di pohon, dan menyerang 11 damage tiap 1,1 dtk.
-- Pemain HP **100**, memukul 26 damage tiap 0,34 dtk saat warga dalam jangkauan; HP pulih 7/dtk setelah 5 dtk aman.
-- Kalau tumbang: **kehilangan 15% uang**, layar mati, lalu bangkit di kebun (HP penuh, gelombang reset).
-
-## Peta & tampilan
-Hutan variatif (3 palet + ukuran acak), padang rumput, ladang gandum, kolam beriak, tanah bekas tebang,
-kandang sapi, hutan pinggiran gelap di luar peta, bayangan, partikel, kilatan merah saat kena serang, vignette.
+## Pertahanan
+- Tiap **30 pohon** → gelombang warga (1+wave orang, maks 5)
+- Warga: 95 HP, 11 damage/1,1 dtk, kecepatan 1,95 (pemain 4,0 — bisa kabur sambil menanam)
+- Pemain: HP 100, pukulan 26 dmg/0,34 dtk, regen 7/dtk setelah 5 dtk aman
+- Tumbang: kehilangan 15% uang → tombol bangkit (HP penuh, gelombang reset)
 
 ## Teknis
-Satu file `index.html`, canvas isometrik 2:1, tanpa dependency/server. Simpan otomatis di `localStorage` (`nyawityuk.v4`).
+Satu file `index.html`, canvas isometrik 2:1, tanpa dependency/server, simpan otomatis (`nyawityuk.v4`).
